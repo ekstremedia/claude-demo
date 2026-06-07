@@ -54,6 +54,15 @@ interface Ripple {
     kind: 'plop' | 'eat';
 }
 
+/** A hawk that dives at a duck. Click it in time to scare it off, or it grabs the duck. */
+interface Predator {
+    x: number;
+    y: number;
+    targetId: number;
+    phase: 'dive' | 'flee';
+    spawnMs: number; // performance.now() at spawn — the grab window counts from here
+}
+
 /** Live HUD numbers pushed (throttled) from the engine to the Vue overlay. */
 export interface PondStats {
     ducksAlive: number;
@@ -76,6 +85,10 @@ const FOOD_SPEED = 130; // px/s — ducks dash to food faster than they wander
 const BREAD_MAX = 12; // crumbs you can have banked
 const BREAD_REFILL_MS = 1000; // one crumb's worth of bread regenerates per second
 const STATS_INTERVAL_MS = 200; // HUD push cadence
+const PREDATOR_MIN_DELAY_MS = 10_000; // shortest gap between hawk attacks
+const PREDATOR_MAX_DELAY_MS = 18_000; // longest gap between hawk attacks
+const PREDATOR_WINDOW_MS = 3_500; // time to click the hawk before it grabs the duck
+const PREDATOR_HIT_RADIUS = 28; // click forgiveness around the hawk
 
 /**
  * The imperative pond engine: GSAP-driven motion + a canvas render loop on GSAP's
@@ -107,6 +120,8 @@ export function usePondScene(
     let bread = BREAD_MAX;
     let lastBreadMs = 0;
     let lastStatsMs = 0;
+    let predator: Predator | null = null;
+    let predatorTimer: ReturnType<typeof setTimeout> | null = null;
     let observer: ResizeObserver | null = null;
     const feedQueue = new Set<number>();
     const dieQueue = new Set<number>();
@@ -362,6 +377,10 @@ export function usePondScene(
                 // A fresh run begins (first spawn or a restock) — reset the run score and bread.
                 crumbsEaten = 0;
                 bread = BREAD_MAX;
+                armPredator();
+            } else {
+                // Nothing left to hunt — call off the hawk.
+                clearPredator();
             }
             handlers.onAllDead(allDead);
         }
@@ -389,6 +408,87 @@ export function usePondScene(
                 handlers.onDie(ids);
             }
         }, 1000);
+    }
+
+    // --- Predator (hawk) ---------------------------------------------------
+
+    /** Schedule the next hawk attack after a random gap. No-op under reduced motion. */
+    function armPredator(): void {
+        if (reducedMotion) {
+            return;
+        }
+        if (predatorTimer !== null) {
+            clearTimeout(predatorTimer);
+        }
+        const delay = gsap.utils.random(PREDATOR_MIN_DELAY_MS, PREDATOR_MAX_DELAY_MS);
+        predatorTimer = setTimeout(() => {
+            predatorTimer = null;
+            spawnPredator();
+        }, delay);
+    }
+
+    function clearPredator(): void {
+        predator = null;
+        if (predatorTimer !== null) {
+            clearTimeout(predatorTimer);
+            predatorTimer = null;
+        }
+    }
+
+    function spawnPredator(): void {
+        if (!running || predator || lastAllDead) {
+            return;
+        }
+        const prey = sprites.filter((s) => !s.dead);
+        if (!prey.length) {
+            armPredator();
+            return;
+        }
+        const target = prey[Math.floor(Math.random() * prey.length)];
+        // Swoop in from above the pond toward the chosen duck.
+        predator = {
+            x: gsap.utils.random(cssW * 0.2, cssW * 0.8),
+            y: -40,
+            targetId: target.data.id,
+            phase: 'dive',
+            spawnMs: performance.now(),
+        };
+    }
+
+    /** Clicking the hawk in time scares it off. */
+    function scarePredator(): void {
+        if (predator) {
+            predator.phase = 'flee';
+        }
+    }
+
+    function updatePredator(): void {
+        if (!predator) {
+            return;
+        }
+        if (predator.phase === 'dive') {
+            const target = sprites.find((s) => s.data.id === predator!.targetId && !s.dead);
+            if (!target) {
+                predator.phase = 'flee';
+                return;
+            }
+            predator.x += (target.x - predator.x) * 0.06;
+            predator.y += (target.y - predator.y) * 0.06;
+            if (performance.now() - predator.spawnMs > PREDATOR_WINDOW_MS) {
+                // Window elapsed unscared — the hawk grabs the duck and carries it off.
+                killSprite(target);
+                if (predator) {
+                    predator.phase = 'flee';
+                }
+            }
+        } else {
+            predator.y -= 9;
+            predator.x += predator.x < cssW / 2 ? -6 : 6;
+            if (predator.y < -60 || predator.x < -60 || predator.x > cssW + 60) {
+                predator = null;
+                armPredator();
+            }
+        }
     }
 
     // --- Rendering ---------------------------------------------------------
@@ -459,6 +559,48 @@ export function usePondScene(
             ctx.stroke();
             ctx.restore();
         }
+    }
+
+    function drawPredator(): void {
+        if (!ctx || !predator) {
+            return;
+        }
+        // A shrinking red ring warns which duck is in the hawk's sights.
+        if (predator.phase === 'dive') {
+            const target = sprites.find((s) => s.data.id === predator!.targetId && !s.dead);
+            if (target) {
+                const t = Math.min(1, (performance.now() - predator.spawnMs) / PREDATOR_WINDOW_MS);
+                ctx.save();
+                ctx.globalAlpha = 0.35 + 0.45 * t;
+                ctx.strokeStyle = '#ef4444';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(target.x, target.y, 18 + 30 * (1 - t), 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.restore();
+            }
+        }
+        // The hawk: a dark winged silhouette.
+        ctx.save();
+        ctx.translate(predator.x, predator.y);
+        ctx.fillStyle = '#1f2937';
+        ctx.shadowColor = 'rgba(8,47,73,0.3)';
+        ctx.shadowBlur = 8;
+        ctx.shadowOffsetY = 6;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 8, 12, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(0, -2);
+        ctx.lineTo(-20, -11);
+        ctx.lineTo(-6, 3);
+        ctx.closePath();
+        ctx.moveTo(0, -2);
+        ctx.lineTo(20, -11);
+        ctx.lineTo(6, 3);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
     }
 
     function drawDuck(s: Sprite, bob: number): void {
@@ -581,6 +723,7 @@ export function usePondScene(
         drawWater();
         updateLife(Date.now());
         updateFeeding();
+        updatePredator();
         drawCrumbs();
         drawRipples(time);
 
@@ -612,6 +755,8 @@ export function usePondScene(
                 drawLabel(s, bob);
             }
         }
+
+        drawPredator();
     }
 
     // --- Layout ------------------------------------------------------------
@@ -750,8 +895,16 @@ export function usePondScene(
         applyHighlight(null);
     }
 
-    /** Click a duck → edit it; click open water → toss breadcrumbs there. */
+    /** Click the hawk → scare it off; click a duck → edit it; click open water → toss breadcrumbs. */
     function clickAt(x: number, y: number): void {
+        if (predator && predator.phase === 'dive') {
+            const dx = x - predator.x;
+            const dy = y - predator.y;
+            if (dx * dx + dy * dy <= PREDATOR_HIT_RADIUS * PREDATOR_HIT_RADIUS) {
+                scarePredator();
+                return;
+            }
+        }
         const id = hitTest(points(), x, y);
         if (id !== null) {
             const sprite = sprites.find((s) => s.data.id === id);
@@ -779,6 +932,7 @@ export function usePondScene(
         running = true;
         resize();
         reconcile();
+        armPredator();
         gsap.ticker.add(tick);
 
         const el = containerRef.value;
@@ -798,6 +952,7 @@ export function usePondScene(
         sprites = [];
         crumbs = [];
         ripples = [];
+        clearPredator();
         if (feedTimer !== null) {
             clearTimeout(feedTimer);
         }
