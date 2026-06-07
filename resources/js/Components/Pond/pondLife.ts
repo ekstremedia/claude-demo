@@ -45,3 +45,23 @@ export function lifeColor(life: number): string {
     const hue = Math.round(130 * Math.min(1, Math.max(0, life)));
     return `hsl(${hue}, 70%, 45%)`;
 }
+
+/**
+ * The bread budget regenerates over time. Returns the new level, capped at `max`.
+ * Pure (no clock) so the engine can drive it from elapsed-time deltas and tests
+ * can drive it directly.
+ */
+export function refillBread(current: number, max: number, elapsedMs: number, refillMs: number): number {
+    if (refillMs <= 0 || elapsedMs <= 0) {
+        return Math.min(max, current);
+    }
+    return Math.min(max, current + elapsedMs / refillMs);
+}
+
+/** Format a span of milliseconds as `M:SS` for the survival-time readout. */
+export function formatDuration(ms: number): string {
+    const total = Math.max(0, Math.floor(ms / 1000));
+    const minutes = Math.floor(total / 60);
+    const seconds = total % 60;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+}

@@ -2,7 +2,7 @@ import gsap from 'gsap';
 import { onMounted, onUnmounted, watch, type Ref } from 'vue';
 import type { Duck } from '@/types/pond';
 import { profileFor, type MotionProfile } from '@/Components/Pond/duckMoods';
-import { hungerLabel, isDeadByLife, lifeColor, lifeFor } from '@/Components/Pond/pondLife';
+import { hungerLabel, isDeadByLife, lifeColor, lifeFor, refillBread } from '@/Components/Pond/pondLife';
 import {
     boundsFor,
     hitTest,
@@ -54,16 +54,28 @@ interface Ripple {
     kind: 'plop' | 'eat';
 }
 
-/** Callbacks the page wires to Inertia (edit / persist feeds / persist deaths / game over). */
+/** Live HUD numbers pushed (throttled) from the engine to the Vue overlay. */
+export interface PondStats {
+    ducksAlive: number;
+    crumbsEaten: number;
+    breadCurrent: number;
+    breadMax: number;
+}
+
+/** Callbacks the page wires to Inertia (edit / persist feeds / persist deaths / game over / HUD). */
 export interface PondSceneHandlers {
     onSelect: (duck: Duck) => void;
     onFeed: (ids: number[]) => void;
     onDie: (ids: number[]) => void;
     onAllDead: (allDead: boolean) => void;
+    onStats: (stats: PondStats) => void;
 }
 
 const CRUMB_TTL_MS = 12_000;
 const FOOD_SPEED = 130; // px/s — ducks dash to food faster than they wander
+const BREAD_MAX = 12; // crumbs you can have banked
+const BREAD_REFILL_MS = 1000; // one crumb's worth of bread regenerates per second
+const STATS_INTERVAL_MS = 200; // HUD push cadence
 
 /**
  * The imperative pond engine: GSAP-driven motion + a canvas render loop on GSAP's
@@ -92,6 +104,9 @@ export function usePondScene(
     let hoverId: number | null = null;
     let lastAllDead = false;
     let crumbsEaten = 0;
+    let bread = BREAD_MAX;
+    let lastBreadMs = 0;
+    let lastStatsMs = 0;
     let observer: ResizeObserver | null = null;
     const feedQueue = new Set<number>();
     const dieQueue = new Set<number>();
@@ -167,10 +182,16 @@ export function usePondScene(
         if (!isInside(bounds, x, y)) {
             return;
         }
+        // Each crumb spends one bread from the budget — you can't spam-feed.
+        const affordable = Math.floor(bread);
+        if (affordable < 1) {
+            return;
+        }
         // A wider, pond-relative scatter so a toss fans out and ducks spread to
         // different crumbs instead of clumping over one spot.
         const spread = Math.min(bounds.rx, bounds.ry) * 0.18;
-        const n = 4 + Math.floor(Math.random() * 3);
+        const n = Math.min(4 + Math.floor(Math.random() * 3), affordable);
+        let placed = 0;
         for (let i = 0; i < n; i++) {
             const a = Math.random() * Math.PI * 2;
             const r = Math.sqrt(Math.random()) * spread;
@@ -190,8 +211,12 @@ export function usePondScene(
                 bornMs: performance.now(),
                 sink: 0,
             });
+            placed++;
         }
-        ripples.push({ x, y, start: gsap.ticker.time, kind: 'plop' });
+        if (placed > 0) {
+            bread = Math.max(0, bread - placed);
+            ripples.push({ x, y, start: gsap.ticker.time, kind: 'plop' });
+        }
     }
 
     function updateFeeding(): void {
@@ -333,6 +358,11 @@ export function usePondScene(
         const allDead = sprites.length > 0 && sprites.every((s) => s.dead);
         if (allDead !== lastAllDead) {
             lastAllDead = allDead;
+            if (!allDead) {
+                // A fresh run begins (first spawn or a restock) — reset the run score and bread.
+                crumbsEaten = 0;
+                bread = BREAD_MAX;
+            }
             handlers.onAllDead(allDead);
         }
     }
@@ -538,6 +568,14 @@ export function usePondScene(
             return;
         }
         const time = gsap.ticker.time;
+        const wallMs = performance.now();
+        // Regenerate the bread budget from elapsed wall-clock time.
+        if (lastBreadMs === 0) {
+            lastBreadMs = wallMs;
+        }
+        bread = refillBread(bread, BREAD_MAX, wallMs - lastBreadMs, BREAD_REFILL_MS);
+        lastBreadMs = wallMs;
+
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         ctx.clearRect(0, 0, cssW, cssH);
         drawWater();
@@ -545,6 +583,17 @@ export function usePondScene(
         updateFeeding();
         drawCrumbs();
         drawRipples(time);
+
+        // Throttled HUD push.
+        if (wallMs - lastStatsMs > STATS_INTERVAL_MS) {
+            lastStatsMs = wallMs;
+            handlers.onStats({
+                ducksAlive: sprites.reduce((n, sp) => n + (sp.dead ? 0 : 1), 0),
+                crumbsEaten,
+                breadCurrent: bread,
+                breadMax: BREAD_MAX,
+            });
+        }
 
         for (const s of sprites) {
             if (!s.dead && !reducedMotion) {
