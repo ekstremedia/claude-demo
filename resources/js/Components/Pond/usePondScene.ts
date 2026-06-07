@@ -169,10 +169,17 @@ export function usePondScene(
         for (let i = 0; i < n; i++) {
             const a = Math.random() * Math.PI * 2;
             const r = Math.random() * 12;
+            const cx = x + Math.cos(a) * r;
+            const cy = y + Math.sin(a) * r;
+            // Keep the scatter inside the pond — a crumb just past the rim would
+            // otherwise lure a duck out of bounds chasing it.
+            if (!isInside(bounds, cx, cy)) {
+                continue;
+            }
             crumbs.push({
                 id: crumbSeq++,
-                x: x + Math.cos(a) * r,
-                y: y + Math.sin(a) * r,
+                x: cx,
+                y: cy,
                 claimedBy: null,
                 eaten: false,
                 bornMs: performance.now(),
@@ -211,6 +218,14 @@ export function usePondScene(
             s.eating = true;
             s.tween?.kill();
             s.target = { x: crumb.x, y: crumb.y };
+            if (reducedMotion) {
+                // Accessibility path: no sprint animation — relocate instantly and eat.
+                s.tween = null;
+                s.x = crumb.x;
+                s.y = crumb.y;
+                eatCrumb(s, cid);
+                continue;
+            }
             const dist = Math.hypot(crumb.x - s.x, crumb.y - s.y);
             const dur = Math.min(1.6, Math.max(0.35, dist / FOOD_SPEED));
             s.tween = gsap.to(s, {
@@ -230,9 +245,13 @@ export function usePondScene(
         const crumb = crumbs.find((c) => c.id === crumbId);
         if (crumb) {
             crumb.eaten = true;
-            ripples.push({ x: crumb.x, y: crumb.y, start: gsap.ticker.time, kind: 'eat' });
-            s.eatPop = 1;
-            gsap.to(s, { eatPop: 0, duration: 0.4, ease: 'power2.out', overwrite: 'auto' });
+            if (reducedMotion) {
+                s.eatPop = 0;
+            } else {
+                ripples.push({ x: crumb.x, y: crumb.y, start: gsap.ticker.time, kind: 'eat' });
+                s.eatPop = 1;
+                gsap.to(s, { eatPop: 0, duration: 0.4, ease: 'power2.out', overwrite: 'auto' });
+            }
             // Optimistic: refill life + bump last_fed_at locally so the bar doesn't
             // snap back before the batched POST round-trips.
             s.data = { ...s.data, last_fed_at: new Date().toISOString() };

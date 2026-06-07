@@ -89,13 +89,20 @@ it('releases (deletes) a duck', function () {
 });
 
 it('feeds a batch of ducks, refilling last_fed_at', function () {
-    $hungry = Duck::factory()->create(['last_fed_at' => now()->subHour()]);
-    $other = Duck::factory()->create(['last_fed_at' => now()->subHour()]);
+    // Freeze time (to a whole second, matching the timestamp column's precision)
+    // so we can assert exact equality rather than a flaky now()-window comparison.
+    $now = now()->startOfSecond();
+    $this->travelTo($now);
+
+    $hungry = Duck::factory()->create(['last_fed_at' => $now->copy()->subHour()]);
+    $other = Duck::factory()->create(['last_fed_at' => $now->copy()->subHour()]);
 
     $this->post('/ducks/feed', ['ids' => [$hungry->id, $other->id]])->assertRedirect();
 
-    expect($hungry->fresh()->last_fed_at->diffInSeconds(now()))->toBeLessThan(5);
-    expect($other->fresh()->last_fed_at->diffInSeconds(now()))->toBeLessThan(5);
+    expect($hungry->fresh()->last_fed_at?->equalTo($now))->toBeTrue();
+    expect($other->fresh()->last_fed_at?->equalTo($now))->toBeTrue();
+
+    $this->travelBack();
 });
 
 it('does not feed a duck that has already died', function () {
