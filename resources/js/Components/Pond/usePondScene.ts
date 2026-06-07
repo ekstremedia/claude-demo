@@ -2,19 +2,21 @@ import gsap from 'gsap';
 import { onMounted, onUnmounted, watch, type Ref } from 'vue';
 import type { Duck } from '@/types/pond';
 import { profileFor, type MotionProfile } from '@/Components/Pond/duckMoods';
+import { hungerLabel, isDeadByLife, lifeColor, lifeFor } from '@/Components/Pond/pondLife';
 import {
     boundsFor,
     hitTest,
     isInside,
     lerpAngle,
+    nearestUnclaimedCrumb,
     pickTarget,
     randomPointIn,
     type PondBounds,
 } from '@/Components/Pond/pondGeometry';
 
 /**
- * Runtime state for one floating duck. Deliberately a plain object (never made
- * reactive) — it's mutated every frame, so Vue's reactivity must stay out of it.
+ * Runtime state for one duck. Deliberately a plain object (never made reactive)
+ * — it's mutated every frame, so Vue's reactivity must stay out of it.
  */
 interface Sprite {
     data: Duck;
@@ -26,31 +28,60 @@ interface Sprite {
     highlight: number;
     target: { x: number; y: number };
     tween: gsap.core.Tween | null;
+    life: number; // 0..1, recomputed each frame from data
+    dead: boolean;
+    eating: boolean; // beelining to a crumb (mood swim suspended)
+    claimedCrumb: number | null;
+    eatPop: number; // one-shot nibble scale
+    bellyFlip: number; // 0..1 flip-to-belly-up on death
 }
 
-interface Lily {
+interface Crumb {
+    id: number;
     x: number;
     y: number;
-    r: number;
-    rot: number;
-    flower: boolean;
+    claimedBy: number | null;
+    eaten: boolean;
+    bornMs: number;
+    sink: number; // 0..1 fade once it has sat too long
 }
 
+interface Ripple {
+    x: number;
+    y: number;
+    start: number; // gsap.ticker.time at spawn
+    kind: 'plop' | 'eat';
+}
+
+/** Callbacks the page wires to Inertia (edit / persist feeds / persist deaths / game over). */
+export interface PondSceneHandlers {
+    onSelect: (duck: Duck) => void;
+    onFeed: (ids: number[]) => void;
+    onDie: (ids: number[]) => void;
+    onAllDead: (allDead: boolean) => void;
+}
+
+const CRUMB_TTL_MS = 12_000;
+const FOOD_SPEED = 130; // px/s — ducks dash to food faster than they wander
+
 /**
- * The imperative pond engine: GSAP-driven mood motion + a canvas render loop on
- * GSAP's ticker, with hover/click hit-testing, live reconciliation against the
- * duck list, resize handling and full teardown. All side effects are confined
- * to `onMounted`/`onUnmounted`, so the component stays import- and SSR-safe.
+ * The imperative pond engine: GSAP-driven motion + a canvas render loop on GSAP's
+ * ticker. Ducks drift by mood, get hungry over time, race to breadcrumbs you drop
+ * and eat them (refilling life), and starve to death if neglected. Hover/click
+ * hit-testing, live reconciliation, resize and full teardown included. All side
+ * effects live in onMounted/onUnmounted, so the component stays import/SSR-safe.
  */
 export function usePondScene(
     canvasRef: Ref<HTMLCanvasElement | null>,
     containerRef: Ref<HTMLElement | null>,
     ducks: () => Duck[],
-    onSelect: (duck: Duck) => void,
+    handlers: PondSceneHandlers,
 ) {
     let ctx: CanvasRenderingContext2D | null = null;
     let sprites: Sprite[] = [];
-    let lilies: Lily[] = [];
+    let crumbs: Crumb[] = [];
+    let ripples: Ripple[] = [];
+    let crumbSeq = 0;
     let bounds: PondBounds = boundsFor(800, 450);
     let cssW = 800;
     let cssH = 450;
@@ -58,7 +89,12 @@ export function usePondScene(
     let running = false;
     let reducedMotion = false;
     let hoverId: number | null = null;
+    let lastAllDead = false;
     let observer: ResizeObserver | null = null;
+    const feedQueue = new Set<number>();
+    const dieQueue = new Set<number>();
+    let feedTimer: ReturnType<typeof setTimeout> | null = null;
+    let dieTimer: ReturnType<typeof setTimeout> | null = null;
 
     // --- Motion ------------------------------------------------------------
 
@@ -70,7 +106,7 @@ export function usePondScene(
         const delay = gsap.utils.random(p.idleRange[0], p.idleRange[1]);
 
         if (p.pathStyle === 'arc') {
-            // Trace a gentle curve: a quadratic bezier bent perpendicular to the leg.
+            // Trace a gentle curve via a quadratic bezier bent perpendicular to the leg.
             const sx = s.x;
             const sy = s.y;
             let nx = -(target.y - sy);
@@ -98,8 +134,6 @@ export function usePondScene(
             return;
         }
 
-        // 'direct' and 'jitter' both swim straight; the tiny grumpy roamRadius is
-        // what makes jitter read as fidgety.
         s.tween = gsap.to(s, {
             x: target.x,
             y: target.y,
@@ -110,54 +144,225 @@ export function usePondScene(
         });
     }
 
+    /** A slow, aimless drift for a dead duck floating belly-up. */
+    function limpDrift(s: Sprite): void {
+        if (!running || reducedMotion) {
+            return;
+        }
+        const target = pickTarget(bounds, { x: s.x, y: s.y }, 0.15);
+        s.tween = gsap.to(s, {
+            x: target.x,
+            y: target.y,
+            duration: gsap.utils.random(8, 14),
+            ease: 'sine.inOut',
+            onComplete: () => limpDrift(s),
+        });
+    }
+
+    // --- Survival ----------------------------------------------------------
+
+    function dropFood(x: number, y: number): void {
+        if (!isInside(bounds, x, y)) {
+            return;
+        }
+        const n = 3 + Math.floor(Math.random() * 3);
+        for (let i = 0; i < n; i++) {
+            const a = Math.random() * Math.PI * 2;
+            const r = Math.random() * 12;
+            crumbs.push({
+                id: crumbSeq++,
+                x: x + Math.cos(a) * r,
+                y: y + Math.sin(a) * r,
+                claimedBy: null,
+                eaten: false,
+                bornMs: performance.now(),
+                sink: 0,
+            });
+        }
+        ripples.push({ x, y, start: gsap.ticker.time, kind: 'plop' });
+    }
+
+    function updateFeeding(): void {
+        const now = performance.now();
+        for (const c of crumbs) {
+            if (!c.eaten && now - c.bornMs > CRUMB_TTL_MS) {
+                c.sink = Math.min(1, c.sink + 0.02);
+            }
+        }
+        crumbs = crumbs.filter((c) => !c.eaten && c.sink < 1);
+
+        if (!crumbs.some((c) => c.claimedBy === null && !c.eaten)) {
+            return;
+        }
+
+        // Hungriest alive ducks claim first, so a starving duck wins the race.
+        const seekers = sprites.filter((s) => !s.dead && !s.eating).sort((a, b) => a.life - b.life);
+        for (const s of seekers) {
+            const cid = nearestUnclaimedCrumb(s, crumbs);
+            if (cid === null) {
+                break;
+            }
+            const crumb = crumbs.find((c) => c.id === cid);
+            if (!crumb) {
+                continue;
+            }
+            crumb.claimedBy = s.data.id;
+            s.claimedCrumb = cid;
+            s.eating = true;
+            s.tween?.kill();
+            s.target = { x: crumb.x, y: crumb.y };
+            const dist = Math.hypot(crumb.x - s.x, crumb.y - s.y);
+            const dur = Math.min(1.6, Math.max(0.35, dist / FOOD_SPEED));
+            s.tween = gsap.to(s, {
+                x: crumb.x,
+                y: crumb.y,
+                duration: dur,
+                ease: 'power2.out',
+                overwrite: 'auto',
+                onComplete: () => eatCrumb(s, cid),
+            });
+        }
+    }
+
+    function eatCrumb(s: Sprite, crumbId: number): void {
+        s.eating = false;
+        s.claimedCrumb = null;
+        const crumb = crumbs.find((c) => c.id === crumbId);
+        if (crumb) {
+            crumb.eaten = true;
+            ripples.push({ x: crumb.x, y: crumb.y, start: gsap.ticker.time, kind: 'eat' });
+            s.eatPop = 1;
+            gsap.to(s, { eatPop: 0, duration: 0.4, ease: 'power2.out', overwrite: 'auto' });
+            // Optimistic: refill life + bump last_fed_at locally so the bar doesn't
+            // snap back before the batched POST round-trips.
+            s.data = { ...s.data, last_fed_at: new Date().toISOString() };
+            s.life = 1;
+            queueFeed(s.data.id);
+        }
+        if (running && !reducedMotion && !s.dead) {
+            scheduleSwim(s);
+        }
+    }
+
+    function updateLife(nowMs: number): void {
+        let died = false;
+        for (const s of sprites) {
+            if (s.dead) {
+                continue;
+            }
+            s.life = lifeFor(s.data.last_fed_at, nowMs, s.data.created_at);
+            if (isDeadByLife(s.life)) {
+                killSprite(s);
+                died = true;
+            }
+        }
+        if (died) {
+            evaluateAllDead();
+        }
+    }
+
+    function killSprite(s: Sprite): void {
+        if (s.dead) {
+            return;
+        }
+        s.dead = true;
+        s.eating = false;
+        s.life = 0;
+        s.highlight = 0;
+        s.tween?.kill();
+        gsap.killTweensOf(s);
+        if (s.claimedCrumb !== null) {
+            const crumb = crumbs.find((c) => c.id === s.claimedCrumb);
+            if (crumb) {
+                crumb.claimedBy = null;
+            }
+            s.claimedCrumb = null;
+        }
+        s.bellyFlip = 0;
+        gsap.to(s, { bellyFlip: 1, duration: 0.6, ease: 'power2.inOut' });
+        limpDrift(s);
+        queueDie(s.data.id);
+    }
+
+    function evaluateAllDead(): void {
+        const allDead = sprites.length > 0 && sprites.every((s) => s.dead);
+        if (allDead !== lastAllDead) {
+            lastAllDead = allDead;
+            handlers.onAllDead(allDead);
+        }
+    }
+
+    function queueFeed(id: number): void {
+        feedQueue.add(id);
+        feedTimer ??= setTimeout(() => {
+            const ids = [...feedQueue];
+            feedQueue.clear();
+            feedTimer = null;
+            if (ids.length) {
+                handlers.onFeed(ids);
+            }
+        }, 1000);
+    }
+
+    function queueDie(id: number): void {
+        dieQueue.add(id);
+        dieTimer ??= setTimeout(() => {
+            const ids = [...dieQueue];
+            dieQueue.clear();
+            dieTimer = null;
+            if (ids.length) {
+                handlers.onDie(ids);
+            }
+        }, 1000);
+    }
+
     // --- Rendering ---------------------------------------------------------
 
     function drawWater(): void {
         if (!ctx) {
             return;
         }
-        const water = ctx.createLinearGradient(0, 0, 0, cssH);
-        water.addColorStop(0, '#7dd3fc');
-        water.addColorStop(1, '#0891b2');
-        ctx.fillStyle = water;
+        const g = ctx.createLinearGradient(0, 0, 0, cssH);
+        g.addColorStop(0, '#bae6fd');
+        g.addColorStop(0.55, '#38bdf8');
+        g.addColorStop(1, '#0e7490');
+        ctx.fillStyle = g;
         ctx.fillRect(0, 0, cssW, cssH);
-
-        const radius = Math.max(cssW, cssH);
-        const vignette = ctx.createRadialGradient(cssW / 2, cssH / 2, radius * 0.3, cssW / 2, cssH / 2, radius * 0.72);
-        vignette.addColorStop(0, 'rgba(8,47,73,0)');
-        vignette.addColorStop(1, 'rgba(8,47,73,0.38)');
-        ctx.fillStyle = vignette;
+        // soft glossy sheen near the top
+        ctx.save();
+        ctx.globalAlpha = 0.18;
+        const sheen = ctx.createRadialGradient(cssW * 0.5, -cssH * 0.2, 0, cssW * 0.5, -cssH * 0.2, cssH * 0.9);
+        sheen.addColorStop(0, '#ffffff');
+        sheen.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = sheen;
         ctx.fillRect(0, 0, cssW, cssH);
+        ctx.restore();
     }
 
-    function drawLilies(): void {
+    function drawShadow(s: Sprite): void {
         if (!ctx) {
             return;
         }
-        const notch = 0.5;
-        for (const l of lilies) {
+        ctx.save();
+        ctx.globalAlpha = s.dead ? 0.1 : 0.16;
+        ctx.fillStyle = '#0c4a6e';
+        ctx.beginPath();
+        ctx.ellipse(s.x, s.y + 18, 22, 7, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    }
+
+    function drawCrumbs(): void {
+        if (!ctx) {
+            return;
+        }
+        for (const c of crumbs) {
             ctx.save();
-            ctx.translate(l.x, l.y);
-            ctx.rotate(l.rot);
-            ctx.fillStyle = 'rgba(34,197,94,0.55)';
+            ctx.globalAlpha = 0.9 * (1 - c.sink);
+            ctx.fillStyle = '#d6bb86';
             ctx.beginPath();
-            ctx.moveTo(0, 0);
-            ctx.arc(0, 0, l.r, notch, Math.PI * 2 - notch);
-            ctx.closePath();
+            ctx.ellipse(c.x, c.y + c.sink * 4, 2.6, 2.2, 0, 0, Math.PI * 2);
             ctx.fill();
-            if (l.flower) {
-                ctx.fillStyle = 'rgba(244,114,182,0.92)';
-                for (let k = 0; k < 5; k++) {
-                    const fa = (k / 5) * Math.PI * 2;
-                    ctx.beginPath();
-                    ctx.ellipse(Math.cos(fa) * l.r * 0.2, Math.sin(fa) * l.r * 0.2, l.r * 0.17, l.r * 0.1, fa, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-                ctx.fillStyle = '#fde68a';
-                ctx.beginPath();
-                ctx.arc(0, 0, l.r * 0.13, 0, Math.PI * 2);
-                ctx.fill();
-            }
             ctx.restore();
         }
     }
@@ -166,52 +371,19 @@ export function usePondScene(
         if (!ctx) {
             return;
         }
-        const centres: Array<[number, number]> = [
-            [0.3, 0.4],
-            [0.7, 0.62],
-            [0.52, 0.24],
-        ];
-        ctx.strokeStyle = 'rgba(255,255,255,0.12)';
-        ctx.lineWidth = 1.5;
-        centres.forEach(([fx, fy], i) => {
-            const phase = (time * 0.22 + i * 0.4) % 1;
-            const r = phase * Math.min(bounds.rx, bounds.ry) * 0.5;
-            ctx!.globalAlpha = 1 - phase;
-            ctx!.beginPath();
-            ctx!.ellipse(bounds.cx + (fx - 0.5) * bounds.rx, bounds.cy + (fy - 0.5) * bounds.ry, r, r * 0.7, 0, 0, Math.PI * 2);
-            ctx!.stroke();
-        });
-        ctx.globalAlpha = 1;
-    }
-
-    function drawWake(s: Sprite): void {
-        if (!ctx) {
-            return;
+        ripples = ripples.filter((r) => time - r.start < 0.9);
+        for (const r of ripples) {
+            const t = (time - r.start) / 0.9;
+            const maxR = r.kind === 'plop' ? 18 : 9;
+            ctx.save();
+            ctx.globalAlpha = (1 - t) * 0.5;
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.ellipse(r.x, r.y, t * maxR, t * maxR * 0.6, 0, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.restore();
         }
-        ctx.save();
-        ctx.translate(s.x, s.y + 7);
-        ctx.rotate(s.heading);
-        ctx.strokeStyle = 'rgba(255,255,255,0.2)';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.ellipse(-11, 0, 13, 6, 0, -0.7, 0.7);
-        ctx.stroke();
-        ctx.restore();
-    }
-
-    function drawReflection(s: Sprite, bob: number): void {
-        if (!ctx) {
-            return;
-        }
-        ctx.save();
-        ctx.globalAlpha = 0.16;
-        ctx.translate(s.x, s.y + bob + 14);
-        ctx.scale(1, -0.6);
-        ctx.fillStyle = s.data.color.hex;
-        ctx.beginPath();
-        ctx.ellipse(0, 0, 16, 11, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
     }
 
     function drawDuck(s: Sprite, bob: number): void {
@@ -219,51 +391,71 @@ export function usePondScene(
             return;
         }
         const flip = Math.cos(s.heading) < 0 ? -1 : 1;
-        const scale = 1 + s.highlight * 0.14;
+        const pop = 1 + s.eatPop * 0.18 + s.highlight * 0.08;
+        const vy = s.dead ? 1 - 2 * s.bellyFlip : 1; // flip belly-up on death
         ctx.save();
-        ctx.translate(s.x, s.y + bob);
-        ctx.scale(flip * scale, scale);
-        if (s.highlight > 0.01) {
-            ctx.shadowColor = 'rgba(15,23,42,0.28)';
-            ctx.shadowBlur = 14 * s.highlight;
-        }
-        ctx.fillStyle = s.data.color.hex;
-        // tail
-        ctx.beginPath();
-        ctx.moveTo(-13, -2);
-        ctx.lineTo(-22, -7);
-        ctx.lineTo(-12, -6);
-        ctx.closePath();
-        ctx.fill();
+        ctx.translate(s.x, s.y + (s.dead ? 0 : bob));
+        ctx.scale(flip * pop, vy * pop);
+        // soft drop shadow on the body itself (glossy lift)
+        ctx.shadowColor = 'rgba(8,47,73,0.25)';
+        ctx.shadowBlur = 10;
+        ctx.shadowOffsetY = 4;
+        ctx.fillStyle = s.dead ? desaturate(s.data.color.hex) : s.data.color.hex;
         // body
         ctx.beginPath();
-        ctx.ellipse(0, 0, 16, 11, 0, 0, Math.PI * 2);
+        ctx.ellipse(0, 0, 22, 15, 0, 0, Math.PI * 2);
         ctx.fill();
         // head
         ctx.beginPath();
-        ctx.ellipse(11, -8, 7.5, 7.5, 0, 0, Math.PI * 2);
+        ctx.ellipse(15, -11, 10, 10, 0, 0, Math.PI * 2);
         ctx.fill();
         ctx.shadowBlur = 0;
-        // white ducks need an outline to read against the bright water
-        if (s.data.color.value === 'white') {
-            ctx.strokeStyle = 'rgba(100,116,139,0.6)';
-            ctx.lineWidth = 0.8;
-            ctx.beginPath();
-            ctx.ellipse(0, 0, 16, 11, 0, 0, Math.PI * 2);
-            ctx.stroke();
-        }
+        ctx.shadowOffsetY = 0;
+        // glossy white highlight
+        ctx.save();
+        ctx.globalAlpha = 0.4;
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.ellipse(-5, -7, 9, 5, -0.3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
         // beak
         ctx.fillStyle = '#fb923c';
         ctx.beginPath();
-        ctx.moveTo(17, -9);
-        ctx.lineTo(25, -7.5);
-        ctx.lineTo(17, -5.5);
+        ctx.moveTo(23, -12);
+        ctx.lineTo(33, -10);
+        ctx.lineTo(23, -7.5);
         ctx.closePath();
         ctx.fill();
-        // eye
+        // eye — a dot when alive, an X when dead
         ctx.fillStyle = '#1e293b';
-        ctx.beginPath();
-        ctx.arc(13.5, -10, 1.5, 0, Math.PI * 2);
+        ctx.strokeStyle = '#1e293b';
+        if (s.dead) {
+            ctx.lineWidth = 1.6;
+            drawX(ctx, 18, -13, 2.6);
+        } else {
+            ctx.beginPath();
+            ctx.arc(18, -13, 2, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.restore();
+    }
+
+    function drawLifeBar(s: Sprite): void {
+        if (!ctx || s.dead) {
+            return;
+        }
+        const w = 28;
+        const h = 4;
+        const x = s.x - w / 2;
+        const y = s.y + 24;
+        ctx.save();
+        ctx.globalAlpha = 0.9;
+        ctx.fillStyle = 'rgba(15,23,42,0.25)';
+        roundRect(ctx, x, y, w, h, 2);
+        ctx.fill();
+        ctx.fillStyle = lifeColor(s.life);
+        roundRect(ctx, x, y, Math.max(2, w * s.life), h, 2);
         ctx.fill();
         ctx.restore();
     }
@@ -272,7 +464,8 @@ export function usePondScene(
         if (!ctx) {
             return;
         }
-        const text = `${s.data.mood.emoji} ${s.data.name}`;
+        const status = s.dead ? '💀' : hungerLabel(s.life);
+        const text = `${s.data.name} · ${status}`;
         ctx.save();
         ctx.globalAlpha = s.highlight;
         ctx.font = '600 13px ui-sans-serif, system-ui, sans-serif';
@@ -280,7 +473,7 @@ export function usePondScene(
         ctx.textBaseline = 'middle';
         const width = ctx.measureText(text).width + 18;
         const lx = s.x;
-        const ly = s.y + bob - 26;
+        const ly = s.y + (s.dead ? 0 : bob) - 30;
         ctx.fillStyle = 'rgba(15,23,42,0.82)';
         roundRect(ctx, lx - width / 2, ly - 11, width, 22, 11);
         ctx.fill();
@@ -297,20 +490,24 @@ export function usePondScene(
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         ctx.clearRect(0, 0, cssW, cssH);
         drawWater();
-        drawLilies();
+        updateLife(Date.now());
+        updateFeeding();
+        drawCrumbs();
         drawRipples(time);
 
         for (const s of sprites) {
-            if (!reducedMotion) {
+            if (!s.dead && !reducedMotion) {
                 const want = Math.atan2(s.target.y - s.y, s.target.x - s.x);
                 s.heading = lerpAngle(s.heading, want, s.profile.turnSharpness * 0.2);
             }
-            const bob = reducedMotion
-                ? Math.sin(time * 0.4 + s.bobPhase) * 1.5
-                : Math.sin(time * s.profile.bobFrequency * Math.PI * 2 + s.bobPhase) * s.profile.bobAmplitude;
-            drawWake(s);
-            drawReflection(s, bob);
+            const bob = s.dead
+                ? 0
+                : reducedMotion
+                  ? Math.sin(time * 0.4 + s.bobPhase) * 1.5
+                  : Math.sin(time * s.profile.bobFrequency * Math.PI * 2 + s.bobPhase) * s.profile.bobAmplitude;
+            drawShadow(s);
             drawDuck(s, bob);
+            drawLifeBar(s);
             if (s.highlight > 0.01) {
                 drawLabel(s, bob);
             }
@@ -318,21 +515,6 @@ export function usePondScene(
     }
 
     // --- Layout ------------------------------------------------------------
-
-    function buildLilies(): void {
-        lilies = [];
-        for (let i = 0; i < 5; i++) {
-            const a = i * 2.399963; // golden-angle scatter, evenly spread
-            const ring = 0.5 + 0.38 * ((i % 3) / 2);
-            lilies.push({
-                x: bounds.cx + Math.cos(a) * bounds.rx * ring,
-                y: bounds.cy + Math.sin(a) * bounds.ry * ring,
-                r: 16 + (i % 3) * 5,
-                rot: a,
-                flower: i % 2 === 0,
-            });
-        }
-    }
 
     function resize(): void {
         const el = containerRef.value;
@@ -349,18 +531,21 @@ export function usePondScene(
         canvas.style.width = `${cssW}px`;
         canvas.style.height = `${cssH}px`;
         bounds = boundsFor(cssW, cssH);
-        buildLilies();
         for (const s of sprites) {
             if (!isInside(bounds, s.x, s.y)) {
                 const p = randomPointIn(bounds);
                 s.x = p.x;
                 s.y = p.y;
             }
-            // The in-flight leg was aimed at the old bounds and could now lead
-            // off-canvas — restart it within the resized pond.
+            // The in-flight leg aimed at the old bounds — restart it in the new pond.
             if (running && !reducedMotion) {
-                s.tween?.kill();
-                scheduleSwim(s);
+                if (s.dead) {
+                    s.tween?.kill();
+                    limpDrift(s);
+                } else if (!s.eating) {
+                    s.tween?.kill();
+                    scheduleSwim(s);
+                }
             }
         }
     }
@@ -369,6 +554,7 @@ export function usePondScene(
 
     function reconcile(): void {
         const next = ducks();
+        const nowMs = Date.now();
         const byId = new Map(sprites.map((s) => [s.data.id, s]));
         const keep = new Set<number>();
 
@@ -387,15 +573,34 @@ export function usePondScene(
                     highlight: 0,
                     target: p,
                     tween: null,
+                    life: lifeFor(duck.last_fed_at, nowMs, duck.created_at),
+                    dead: duck.died_at !== null,
+                    eating: false,
+                    claimedCrumb: null,
+                    eatPop: 0,
+                    bellyFlip: duck.died_at !== null ? 1 : 0,
                 };
                 sprites.push(sprite);
                 if (running && !reducedMotion) {
-                    scheduleSwim(sprite);
+                    sprite.dead ? limpDrift(sprite) : scheduleSwim(sprite);
                 }
             } else {
+                const wasDead = existing.dead;
                 const moodChanged = existing.data.mood.value !== duck.mood.value;
-                existing.data = duck; // colour/name/bio refresh for free (read at draw)
-                if (moodChanged) {
+                existing.data = duck;
+                if (wasDead && duck.died_at === null) {
+                    // revived by a restock
+                    existing.dead = false;
+                    existing.bellyFlip = 0;
+                    existing.life = lifeFor(duck.last_fed_at, nowMs, duck.created_at);
+                    existing.tween?.kill();
+                    if (running && !reducedMotion) {
+                        scheduleSwim(existing);
+                    }
+                } else if (!wasDead && duck.died_at !== null) {
+                    // server-authoritative death (lazy reap on index)
+                    killSprite(existing);
+                } else if (moodChanged && !existing.dead) {
                     existing.profile = profileFor(duck.mood.value);
                     existing.tween?.kill();
                     if (running && !reducedMotion) {
@@ -412,6 +617,8 @@ export function usePondScene(
                 sprites.splice(i, 1);
             }
         }
+
+        evaluateAllDead();
     }
 
     // --- Pointer -----------------------------------------------------------
@@ -430,7 +637,7 @@ export function usePondScene(
         }
         const canvas = canvasRef.value;
         if (canvas) {
-            canvas.style.cursor = id === null ? 'default' : 'pointer';
+            canvas.style.cursor = id === null ? 'crosshair' : 'pointer';
         }
     }
 
@@ -442,15 +649,17 @@ export function usePondScene(
         applyHighlight(null);
     }
 
+    /** Click a duck → edit it; click open water → toss breadcrumbs there. */
     function clickAt(x: number, y: number): void {
         const id = hitTest(points(), x, y);
-        if (id === null) {
+        if (id !== null) {
+            const sprite = sprites.find((s) => s.data.id === id);
+            if (sprite) {
+                handlers.onSelect(sprite.data);
+            }
             return;
         }
-        const sprite = sprites.find((s) => s.data.id === id);
-        if (sprite) {
-            onSelect(sprite.data);
-        }
+        dropFood(x, y);
     }
 
     // --- Lifecycle ---------------------------------------------------------
@@ -466,14 +675,9 @@ export function usePondScene(
         }
         ctx = context;
         reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        running = true;
         resize();
         reconcile();
-        running = true;
-        if (!reducedMotion) {
-            for (const s of sprites) {
-                scheduleSwim(s);
-            }
-        }
         gsap.ticker.add(tick);
 
         const el = containerRef.value;
@@ -491,6 +695,16 @@ export function usePondScene(
             gsap.killTweensOf(s);
         }
         sprites = [];
+        crumbs = [];
+        ripples = [];
+        if (feedTimer !== null) {
+            clearTimeout(feedTimer);
+        }
+        if (dieTimer !== null) {
+            clearTimeout(dieTimer);
+        }
+        feedTimer = null;
+        dieTimer = null;
         observer?.disconnect();
         observer = null;
         ctx = null;
@@ -498,7 +712,7 @@ export function usePondScene(
 
     watch(ducks, () => reconcile(), { deep: false });
 
-    return { setPointer, clearPointer, clickAt };
+    return { setPointer, clearPointer, clickAt, dropFood };
 }
 
 /** Rounded-rectangle path helper (canvas `roundRect` isn't universally available). */
@@ -510,4 +724,25 @@ function roundRect(c: CanvasRenderingContext2D, x: number, y: number, w: number,
     c.arcTo(x, y + h, x, y, r);
     c.arcTo(x, y, x + w, y, r);
     c.closePath();
+}
+
+/** A little X for a dead duck's eye. */
+function drawX(c: CanvasRenderingContext2D, x: number, y: number, r: number): void {
+    c.beginPath();
+    c.moveTo(x - r, y - r);
+    c.lineTo(x + r, y + r);
+    c.moveTo(x + r, y - r);
+    c.lineTo(x - r, y + r);
+    c.stroke();
+}
+
+/** Wash a colour toward grey — a dead duck loses its lustre. */
+function desaturate(hex: string): string {
+    const n = parseInt(hex.slice(1), 16);
+    const r = (n >> 16) & 255;
+    const g = (n >> 8) & 255;
+    const b = n & 255;
+    const avg = (r + g + b) / 3;
+    const mix = (ch: number): number => Math.round(ch * 0.45 + avg * 0.55);
+    return `rgb(${mix(r)}, ${mix(g)}, ${mix(b)})`;
 }

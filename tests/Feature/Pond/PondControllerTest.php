@@ -6,7 +6,7 @@ use App\Domains\Pond\Models\Duck;
 use App\Domains\Pond\Models\Pond;
 use Inertia\Testing\AssertableInertia as Assert;
 
-it('renders the pond page with canvas ducks, the pond list and form options', function () {
+it('renders the pond page with canvas ducks and form options', function () {
     $pond = Pond::factory()->create();
     Duck::factory()->count(2)->for($pond)->create();
 
@@ -15,42 +15,45 @@ it('renders the pond page with canvas ducks, the pond list and form options', fu
         ->assertInertia(fn (Assert $page) => $page
             ->component('Pond/Ponds')
             ->has('ducks', 2)
+            ->has('ducks.0.last_fed_at')
+            ->has('ducks.0.created_at')
             ->has('ponds', 1)
-            ->where('ponds.0.ducks_count', 2)
+            ->where('ponds.0.name', $pond->name)
             ->has('options.colors')
             ->has('options.moods'));
 });
 
-it('digs a new pond', function () {
-    $this->post('/ponds', ['name' => 'New Pond', 'description' => 'A lovely spot.'])
+it('lazily marks starved ducks as dead when the pond is opened', function () {
+    $alive = Duck::factory()->create(['last_fed_at' => now()]);
+    $starved = Duck::factory()->create([
+        'last_fed_at' => now()->subSeconds(Duck::LIFESPAN_SECONDS + 30),
+        'died_at' => null,
+    ]);
+
+    $this->get('/ponds')->assertOk();
+
+    expect($alive->fresh()->died_at)->toBeNull();
+    expect($starved->fresh()->died_at)->not->toBeNull();
+});
+
+it('falls back to created_at when a duck has never been fed', function () {
+    $duck = Duck::factory()->create(['last_fed_at' => null]);
+    // Backdate creation past the lifespan so the COALESCE anchor starves it.
+    $duck->forceFill(['created_at' => now()->subSeconds(Duck::LIFESPAN_SECONDS + 30)])->saveQuietly();
+
+    $this->get('/ponds')->assertOk();
+
+    expect($duck->fresh()->died_at)->not->toBeNull();
+});
+
+it('restocks the pond, reviving every duck with a full belly', function () {
+    Duck::factory()->create(['died_at' => now(), 'last_fed_at' => now()->subHour()]);
+    Duck::factory()->create(['died_at' => null, 'last_fed_at' => now()->subHour()]);
+
+    $this->post('/pond/restock')
         ->assertRedirect()
         ->assertSessionHas('success');
 
-    expect(Pond::where('name', 'New Pond')->exists())->toBeTrue();
-});
-
-it('updates a pond', function () {
-    $pond = Pond::factory()->create(['name' => 'Old']);
-
-    $this->put("/ponds/{$pond->id}", ['name' => 'Renamed', 'description' => null])
-        ->assertRedirect();
-
-    expect($pond->fresh()->name)->toBe('Renamed');
-});
-
-it('validates that a pond name is required', function () {
-    $this->post('/ponds', ['name' => ''])->assertSessionHasErrors('name');
-});
-
-it('draining a pond leaves its ducks homeless, not deleted', function () {
-    $pond = Pond::factory()->create();
-    $duck = Duck::factory()->for($pond)->create();
-
-    $this->delete("/ponds/{$pond->id}")
-        ->assertRedirect()
-        ->assertSessionHas('success');
-
-    expect(Pond::find($pond->id))->toBeNull();
-    expect($duck->fresh())->not->toBeNull()
-        ->and($duck->fresh()->pond_id)->toBeNull();
+    expect(Duck::whereNotNull('died_at')->count())->toBe(0);
+    expect(Duck::whereNull('last_fed_at')->count())->toBe(0);
 });

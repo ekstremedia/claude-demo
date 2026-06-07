@@ -98,6 +98,39 @@ class DuckController extends Controller
     }
 
     /**
+     * Feed a batch of ducks (the ones that just ate breadcrumbs in the pond),
+     * refilling their life. Already-dead ducks can't be fed.
+     */
+    public function feed(Request $request): RedirectResponse
+    {
+        Duck::query()->whereIn('id', $this->validatedDuckIds($request))->whereNull('died_at')->update(['last_fed_at' => now()]);
+
+        return back();
+    }
+
+    /** Record a batch of ducks that have starved to death. */
+    public function bury(Request $request): RedirectResponse
+    {
+        Duck::query()->whereIn('id', $this->validatedDuckIds($request))->whereNull('died_at')->update(['died_at' => now()]);
+
+        return back();
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function validatedDuckIds(Request $request): array
+    {
+        /** @var list<int> $ids */
+        $ids = $request->validate([
+            'ids' => ['required', 'array'],
+            'ids.*' => ['integer', 'exists:ducks,id'],
+        ])['ids'];
+
+        return $ids;
+    }
+
+    /**
      * Headline numbers for the stats bar above the grid.
      *
      * @return array{total_ducks: int, total_ponds: int, by_mood: array<string, int>}

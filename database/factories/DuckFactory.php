@@ -28,6 +28,8 @@ class DuckFactory extends Factory
             'mood' => fake()->randomElement(DuckMood::cases()),
             'adopted_at' => fake()->dateTimeBetween('-2 years', 'now'),
             'bio' => fake()->boolean(60) ? fake()->sentence() : null,
+            'last_fed_at' => now(), // born with a full belly
+            'died_at' => null,
         ];
     }
 

@@ -28,13 +28,11 @@ export interface Duck {
     mood: MoodOption;
     adopted_at: string;
     bio: string | null;
-}
-
-export interface Pond {
-    id: number;
-    name: string;
-    description: string | null;
-    ducks_count: number;
+    // Survival timestamps (ISO 8601). The canvas derives each duck's life from
+    // these — see pondLife.ts (mirror of Duck::LIFESPAN_SECONDS on the server).
+    created_at: string;
+    last_fed_at: string | null;
+    died_at: string | null;
 }
 
 export interface DuckStats {

@@ -26,6 +26,9 @@ class DuckResource extends JsonResource
      *     mood: array{value: string, label: string, emoji: string},
      *     adopted_at: string,
      *     bio: string|null,
+     *     created_at: string,
+     *     last_fed_at: string|null,
+     *     died_at: string|null,
      * }
      */
     public function toArray(Request $request): array
@@ -43,6 +46,10 @@ class DuckResource extends JsonResource
             'mood' => $duck->mood->toArray(),
             'adopted_at' => $duck->adopted_at->toDateString(),
             'bio' => $duck->bio,
+            // Survival anchors: the canvas computes a 0..1 life from these.
+            'created_at' => $duck->created_at->toIso8601String(),
+            'last_fed_at' => $duck->last_fed_at?->toIso8601String(),
+            'died_at' => $duck->died_at?->toIso8601String(),
         ];
     }
 }

@@ -9,32 +9,18 @@ use App\Domains\Pond\Models\Pond;
 use Illuminate\Database\Seeder;
 
 /**
- * Fills the pond with a few cheerful, named ponds and a flock of ducks so the
- * app looks alive the moment you open it. Includes a couple of homeless ducks
- * to exercise the "no pond" state and the filters.
+ * One little pond, a small flock of well-fed ducks — enough to make the pond
+ * feel alive the moment you open it, calm enough not to feel crowded.
  */
 class DemoPondSeeder extends Seeder
 {
     public function run(): void
     {
-        $ponds = [
-            'Lily Lagoon' => 'A calm pond carpeted with water lilies.',
-            'Splash Bay' => 'Where the rowdiest ducks make the biggest waves.',
-            'Mossy Hollow' => 'A shady, secret pond tucked behind the reeds.',
-        ];
+        $pond = Pond::factory()->create([
+            'name' => 'The Pond',
+            'description' => 'One little pond, eight hungry ducks. Keep them fed.',
+        ]);
 
-        foreach ($ponds as $name => $description) {
-            $pond = Pond::factory()->create([
-                'name' => $name,
-                'description' => $description,
-            ]);
-
-            Duck::factory()->count(fake()->numberBetween(4, 8))->for($pond)->create();
-            Duck::factory()->happy()->for($pond)->create();
-            Duck::factory()->grumpy()->for($pond)->create();
-        }
-
-        // A few homeless ducks drifting between ponds.
-        Duck::factory()->count(3)->create();
+        Duck::factory()->count(8)->for($pond)->create();
     }
 }

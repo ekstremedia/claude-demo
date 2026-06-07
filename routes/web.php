@@ -18,10 +18,15 @@ Route::get('/dashboard', fn () => Inertia::render('Dashboard'))->name('dashboard
 | Rubber Duck Pond 🦆
 |--------------------------------------------------------------------------
 |
-| The duck grid lives at /pond; ducks themselves are a resource (no `show`).
-| The animated pond lives at /ponds.
+| The duck grid lives at /pond; the living pond (feed-or-they-die) is at /ponds.
+| The feed/die survival actions are declared before the `ducks` resource so the
+| literal paths aren't shadowed by the resource's wildcards.
 |
 */
 Route::get('/pond', [DuckController::class, 'index'])->name('pond.index');
+Route::post('/ducks/feed', [DuckController::class, 'feed'])->name('ducks.feed');
+Route::post('/ducks/die', [DuckController::class, 'bury'])->name('ducks.die');
 Route::resource('ducks', DuckController::class)->only(['store', 'update', 'destroy']);
-Route::resource('ponds', PondController::class)->only(['index', 'store', 'update', 'destroy']);
+
+Route::get('/ponds', [PondController::class, 'index'])->name('ponds.index');
+Route::post('/pond/restock', [PondController::class, 'restock'])->name('pond.restock');

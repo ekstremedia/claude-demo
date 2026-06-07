@@ -19,6 +19,9 @@ return new class extends Migration
             $table->string('mood');   // backed by the DuckMood enum
             $table->date('adopted_at');
             $table->text('bio')->nullable();
+            // Survival: when the duck last ate, and when it starved (if it did).
+            $table->timestamp('last_fed_at')->nullable();
+            $table->timestamp('died_at')->nullable()->index();
             $table->timestamps();
 
             // Indexes backing the index-page search and filters.

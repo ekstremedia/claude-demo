@@ -23,6 +23,8 @@ use Illuminate\Support\Carbon;
  * @property DuckMood $mood
  * @property Carbon $adopted_at
  * @property string|null $bio
+ * @property Carbon|null $last_fed_at
+ * @property Carbon|null $died_at
  * @property Carbon $created_at
  * @property Carbon $updated_at
  * @property-read Pond|null $pond
@@ -33,8 +35,11 @@ class Duck extends Model
     /** @use HasFactory<DuckFactory> */
     use HasFactory;
 
+    /** Seconds a duck may go unfed before it starves — the single survival tunable. */
+    public const int LIFESPAN_SECONDS = 180;
+
     /** @var list<string> */
-    protected $fillable = ['pond_id', 'name', 'color', 'mood', 'adopted_at', 'bio'];
+    protected $fillable = ['pond_id', 'name', 'color', 'mood', 'adopted_at', 'bio', 'last_fed_at', 'died_at'];
 
     /** @return array<string, string> */
     protected function casts(): array
@@ -44,6 +49,8 @@ class Duck extends Model
             'color' => DuckColor::class,
             'mood' => DuckMood::class,
             'adopted_at' => 'date',
+            'last_fed_at' => 'datetime',
+            'died_at' => 'datetime',
         ];
     }
 

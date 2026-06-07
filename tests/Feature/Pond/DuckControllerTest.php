@@ -88,6 +88,51 @@ it('releases (deletes) a duck', function () {
     expect(Duck::find($duck->id))->toBeNull();
 });
 
+it('feeds a batch of ducks, refilling last_fed_at', function () {
+    $hungry = Duck::factory()->create(['last_fed_at' => now()->subHour()]);
+    $other = Duck::factory()->create(['last_fed_at' => now()->subHour()]);
+
+    $this->post('/ducks/feed', ['ids' => [$hungry->id, $other->id]])->assertRedirect();
+
+    expect($hungry->fresh()->last_fed_at->diffInSeconds(now()))->toBeLessThan(5);
+    expect($other->fresh()->last_fed_at->diffInSeconds(now()))->toBeLessThan(5);
+});
+
+it('does not feed a duck that has already died', function () {
+    $deadAt = now()->subMinutes(5);
+    $dead = Duck::factory()->create(['died_at' => $deadAt, 'last_fed_at' => now()->subHour()]);
+
+    $this->post('/ducks/feed', ['ids' => [$dead->id]])->assertRedirect();
+
+    // Still dead, and its feeding timestamp was left untouched.
+    expect($dead->fresh()->died_at)->not->toBeNull()
+        ->and($dead->fresh()->last_fed_at->diffInSeconds(now()))->toBeGreaterThan(60);
+});
+
+it('buries a batch of starved ducks by stamping died_at', function () {
+    $a = Duck::factory()->create(['died_at' => null]);
+    $b = Duck::factory()->create(['died_at' => null]);
+
+    $this->post('/ducks/die', ['ids' => [$a->id, $b->id]])->assertRedirect();
+
+    expect($a->fresh()->died_at)->not->toBeNull();
+    expect($b->fresh()->died_at)->not->toBeNull();
+});
+
+it('does not overwrite the death time of an already-dead duck', function () {
+    $original = now()->subMinutes(10);
+    $dead = Duck::factory()->create(['died_at' => $original]);
+
+    $this->post('/ducks/die', ['ids' => [$dead->id]])->assertRedirect();
+
+    expect($dead->fresh()->died_at->diffInSeconds($original))->toBeLessThan(2);
+});
+
+it('validates the duck ids on feed and die', function (string $route) {
+    $this->post($route, ['ids' => 'nope'])->assertSessionHasErrors('ids');
+    $this->post($route, ['ids' => [999999]])->assertSessionHasErrors('ids.0');
+})->with(['/ducks/feed', '/ducks/die']);
+
 it('filters ducks by search, mood and colour', function () {
     Duck::factory()->create(['name' => 'Findme', 'mood' => DuckMood::Zen, 'color' => DuckColor::Blue]);
     Duck::factory()->create(['name' => 'Other', 'mood' => DuckMood::Grumpy, 'color' => DuckColor::Pink]);

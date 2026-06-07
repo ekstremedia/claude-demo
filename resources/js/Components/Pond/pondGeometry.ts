@@ -79,3 +79,27 @@ export function lerpAngle(from: number, to: number, t: number): number {
     }
     return from + delta * t;
 }
+
+/**
+ * The id of the nearest **unclaimed, uneaten** crumb to a duck, or null. Callers
+ * mark a crumb's `claimedBy` straight after assigning it (hungriest duck first),
+ * so no two ducks ever chase the same crumb.
+ */
+export function nearestUnclaimedCrumb(
+    duck: { x: number; y: number },
+    crumbs: ReadonlyArray<{ id: number; x: number; y: number; claimedBy: number | null; eaten: boolean }>,
+): number | null {
+    let best: number | null = null;
+    let bestDist = Infinity;
+    for (const c of crumbs) {
+        if (c.eaten || c.claimedBy !== null) {
+            continue;
+        }
+        const d = (c.x - duck.x) ** 2 + (c.y - duck.y) ** 2;
+        if (d < bestDist) {
+            bestDist = d;
+            best = c.id;
+        }
+    }
+    return best;
+}
