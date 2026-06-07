@@ -26,6 +26,7 @@ Route::get('/dashboard', fn () => Inertia::render('Dashboard'))->name('dashboard
 Route::get('/pond', [DuckController::class, 'index'])->name('pond.index');
 Route::post('/ducks/feed', [DuckController::class, 'feed'])->name('ducks.feed');
 Route::post('/ducks/die', [DuckController::class, 'bury'])->name('ducks.die');
+Route::post('/ducks/hatch', [DuckController::class, 'hatch'])->name('ducks.hatch');
 Route::resource('ducks', DuckController::class)->only(['store', 'update', 'destroy']);
 
 Route::get('/ponds', [PondController::class, 'index'])->name('ponds.index');

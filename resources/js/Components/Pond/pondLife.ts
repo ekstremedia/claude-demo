@@ -58,6 +58,20 @@ export function refillBread(current: number, max: number, elapsedMs: number, ref
     return Math.min(max, current + elapsedMs / refillMs);
 }
 
+/** How long a duck must stay content before it lays an egg, in milliseconds. */
+export const BREED_CONTENT_MS = 18_000;
+
+/** Max living ducks before breeding stops (mirrors DuckController::FLOCK_CAP). */
+export const FLOCK_CAP = 16;
+
+/**
+ * A well-fed duck breeds: content (life above the threshold) for long enough,
+ * while the flock is below the cap. Pure so the engine and tests share the rule.
+ */
+export function shouldBreed(life: number, contentForMs: number, flockSize: number): boolean {
+    return life > 0.85 && contentForMs >= BREED_CONTENT_MS && flockSize < FLOCK_CAP;
+}
+
 /** Format a span of milliseconds as `M:SS` for the survival-time readout. */
 export function formatDuration(ms: number): string {
     const total = Math.max(0, Math.floor(ms / 1000));

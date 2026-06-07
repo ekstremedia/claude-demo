@@ -10,6 +10,7 @@ const emit = defineEmits<{
     feed: [ids: number[]];
     die: [ids: number[]];
     restock: [];
+    hatch: [parentId: number];
 }>();
 
 const containerRef = ref<HTMLElement | null>(null);
@@ -100,6 +101,7 @@ const scene = usePondScene(canvasRef, containerRef, () => props.ducks, {
     onStats: (s) => {
         stats.value = s;
     },
+    onHatch: (parentId) => emit('hatch', parentId),
 });
 
 /** Map a pointer/mouse event to canvas-space CSS pixels (matches the render transform). */

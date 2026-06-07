@@ -37,6 +37,10 @@ function bury(ids: number[]): void {
 function restock(): void {
     router.post('/pond/restock', {}, { preserveScroll: true });
 }
+
+function hatch(parentId: number): void {
+    router.post('/ducks/hatch', { parent_id: parentId }, { preserveScroll: true, preserveState: true });
+}
 </script>
 
 <template>
@@ -62,7 +66,7 @@ function restock(): void {
 
         <!-- The living pond -->
         <div class="mt-6">
-            <PondCanvas :ducks="ducks" @select="openDuck" @feed="feed" @die="bury" @restock="restock" />
+            <PondCanvas :ducks="ducks" @select="openDuck" @feed="feed" @die="bury" @restock="restock" @hatch="hatch" />
         </div>
 
         <DuckFormModal

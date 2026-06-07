@@ -1,5 +1,16 @@
 import { describe, it, expect } from 'vitest';
-import { formatDuration, hungerLabel, isDeadByLife, LIFESPAN_MS, lifeColor, lifeFor, refillBread } from '@/Components/Pond/pondLife';
+import {
+    BREED_CONTENT_MS,
+    FLOCK_CAP,
+    formatDuration,
+    hungerLabel,
+    isDeadByLife,
+    LIFESPAN_MS,
+    lifeColor,
+    lifeFor,
+    refillBread,
+    shouldBreed,
+} from '@/Components/Pond/pondLife';
 
 const BORN = '2026-01-01T00:00:00.000Z';
 const bornMs = Date.parse(BORN);
@@ -94,6 +105,24 @@ describe('pondLife', () => {
 
         it('clamps negative input to zero', () => {
             expect(formatDuration(-500)).toBe('0:00');
+        });
+    });
+
+    describe('shouldBreed', () => {
+        it('breeds a content duck that has waited long enough, under the cap', () => {
+            expect(shouldBreed(0.9, BREED_CONTENT_MS, FLOCK_CAP - 1)).toBe(true);
+        });
+
+        it('will not breed when not content enough', () => {
+            expect(shouldBreed(0.8, BREED_CONTENT_MS, 4)).toBe(false);
+        });
+
+        it('will not breed before the content window elapses', () => {
+            expect(shouldBreed(0.95, BREED_CONTENT_MS - 1, 4)).toBe(false);
+        });
+
+        it('will not breed at or above the flock cap', () => {
+            expect(shouldBreed(0.95, BREED_CONTENT_MS, FLOCK_CAP)).toBe(false);
         });
     });
 });

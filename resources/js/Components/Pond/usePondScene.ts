@@ -2,7 +2,7 @@ import gsap from 'gsap';
 import { onMounted, onUnmounted, watch, type Ref } from 'vue';
 import type { Duck } from '@/types/pond';
 import { profileFor, type MotionProfile } from '@/Components/Pond/duckMoods';
-import { hungerLabel, isDeadByLife, lifeColor, lifeFor, refillBread } from '@/Components/Pond/pondLife';
+import { hungerLabel, isDeadByLife, lifeColor, lifeFor, refillBread, shouldBreed } from '@/Components/Pond/pondLife';
 import {
     boundsFor,
     hitTest,
@@ -35,6 +35,8 @@ interface Sprite {
     eatPop: number; // one-shot nibble scale
     peck: number; // 0..1 head-bow toward the water while eating
     bellyFlip: number; // 0..1 flip-to-belly-up on death
+    spawn: number; // 0..1 grow-in when a duckling hatches
+    contentSinceMs: number; // performance.now() since continuously content (0 = not)
 }
 
 interface Crumb {
@@ -78,6 +80,7 @@ export interface PondSceneHandlers {
     onDie: (ids: number[]) => void;
     onAllDead: (allDead: boolean) => void;
     onStats: (stats: PondStats) => void;
+    onHatch: (parentId: number) => void;
 }
 
 const CRUMB_TTL_MS = 12_000;
@@ -89,6 +92,7 @@ const PREDATOR_MIN_DELAY_MS = 10_000; // shortest gap between hawk attacks
 const PREDATOR_MAX_DELAY_MS = 18_000; // longest gap between hawk attacks
 const PREDATOR_WINDOW_MS = 3_500; // time to click the hawk before it grabs the duck
 const PREDATOR_HIT_RADIUS = 28; // click forgiveness around the hawk
+const HATCH_COOLDOWN_MS = 5_000; // min gap between ducklings (one round-trip + breathing room)
 
 /**
  * The imperative pond engine: GSAP-driven motion + a canvas render loop on GSAP's
@@ -122,6 +126,8 @@ export function usePondScene(
     let lastStatsMs = 0;
     let predator: Predator | null = null;
     let predatorTimer: ReturnType<typeof setTimeout> | null = null;
+    let lastHatchMs = 0;
+    let firstReconcileDone = false;
     let observer: ResizeObserver | null = null;
     const feedQueue = new Set<number>();
     const dieQueue = new Set<number>();
@@ -342,6 +348,33 @@ export function usePondScene(
         }
         if (died) {
             evaluateAllDead();
+        }
+    }
+
+    /**
+     * Well-fed ducks breed: a duck that stays content long enough lays an egg,
+     * and we ask the server to hatch a duckling (which flows back in via reconcile,
+     * growing the flock and the feeding load).
+     */
+    function updateBreeding(wallMs: number): void {
+        const flockSize = sprites.reduce((n, sp) => n + (sp.dead ? 0 : 1), 0);
+        for (const s of sprites) {
+            if (s.dead) {
+                continue;
+            }
+            if (s.life <= 0.85) {
+                s.contentSinceMs = 0;
+                continue;
+            }
+            if (s.contentSinceMs === 0) {
+                s.contentSinceMs = wallMs;
+            }
+            const contentFor = wallMs - s.contentSinceMs;
+            if (wallMs - lastHatchMs > HATCH_COOLDOWN_MS && shouldBreed(s.life, contentFor, flockSize)) {
+                lastHatchMs = wallMs;
+                s.contentSinceMs = wallMs; // start the parent's clock over
+                handlers.onHatch(s.data.id);
+            }
         }
     }
 
@@ -608,7 +641,7 @@ export function usePondScene(
             return;
         }
         const flip = Math.cos(s.heading) < 0 ? -1 : 1;
-        const pop = 1 + s.eatPop * 0.18 + s.highlight * 0.08;
+        const pop = (1 + s.eatPop * 0.18 + s.highlight * 0.08) * s.spawn;
         const vy = s.dead ? 1 - 2 * s.bellyFlip : 1; // flip belly-up on death
         // Bow-to-peck: the head/beak/eye dip down-and-forward toward the water.
         // Done in local space (where +y is screen-down regardless of facing) so it
@@ -722,6 +755,7 @@ export function usePondScene(
         ctx.clearRect(0, 0, cssW, cssH);
         drawWater();
         updateLife(Date.now());
+        updateBreeding(wallMs);
         updateFeeding();
         updatePredator();
         drawCrumbs();
@@ -807,6 +841,9 @@ export function usePondScene(
             keep.add(duck.id);
             const existing = byId.get(duck.id);
             if (!existing) {
+                // A duck that appears after the initial load is a freshly hatched
+                // duckling — grow it in. Ducks present on first load just exist.
+                const hatched = firstReconcileDone && duck.died_at === null;
                 const p = randomPointIn(bounds);
                 const sprite: Sprite = {
                     data: duck,
@@ -825,8 +862,15 @@ export function usePondScene(
                     eatPop: 0,
                     peck: 0,
                     bellyFlip: duck.died_at !== null ? 1 : 0,
+                    spawn: hatched ? 0 : 1,
+                    contentSinceMs: 0,
                 };
                 sprites.push(sprite);
+                if (hatched && !reducedMotion) {
+                    gsap.to(sprite, { spawn: 1, duration: 0.5, ease: 'back.out(2)' });
+                } else {
+                    sprite.spawn = 1;
+                }
                 if (running && !reducedMotion) {
                     sprite.dead ? limpDrift(sprite) : scheduleSwim(sprite);
                 }
@@ -865,6 +909,7 @@ export function usePondScene(
         }
 
         evaluateAllDead();
+        firstReconcileDone = true;
     }
 
     // --- Pointer -----------------------------------------------------------
