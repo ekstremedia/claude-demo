@@ -14,19 +14,30 @@ const nav = [
 </script>
 
 <template>
-    <div class="min-h-full flex flex-col bg-slate-50 text-slate-900">
-        <header class="border-b border-slate-200 bg-white/80 backdrop-blur">
+    <div
+        class="relative isolate flex min-h-full flex-col bg-gradient-to-b from-sky-100 via-sky-50 to-emerald-100 text-slate-900"
+    >
+        <!-- Ambient "nice weather": a soft sun glow and a meadow glow, fixed so
+             they stay put as you scroll. Purely decorative. -->
+        <div class="pointer-events-none fixed inset-0 -z-10 overflow-hidden" aria-hidden="true">
+            <div class="absolute -top-32 right-[-8%] h-[28rem] w-[28rem] rounded-full bg-amber-200/40 blur-3xl"></div>
+            <div class="absolute bottom-[-18%] left-[-8%] h-[26rem] w-[26rem] rounded-full bg-emerald-200/45 blur-3xl"></div>
+        </div>
+
+        <header class="border-b border-white/50 bg-white/50 backdrop-blur">
             <nav class="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
                 <Link href="/" class="flex items-center gap-2 font-semibold">
-                    <span class="grid h-8 w-8 place-items-center rounded-lg bg-indigo-600 text-white">▲</span>
+                    <span
+                        class="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-sky-400 to-emerald-500 text-white shadow-sm"
+                    >🦆</span>
                     {{ appName }}
                 </Link>
                 <ul class="flex items-center gap-1">
                     <li v-for="item in nav" :key="item.href">
                         <Link
                             :href="item.href"
-                            class="rounded-md px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
-                            :class="{ 'bg-slate-100 text-slate-900': page.url === item.href }"
+                            class="rounded-md px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-white/60 hover:text-slate-900"
+                            :class="{ 'bg-white/70 text-slate-900 shadow-sm ring-1 ring-black/5': page.url === item.href }"
                         >
                             {{ item.label }}
                         </Link>
@@ -39,7 +50,7 @@ const nav = [
             <slot />
         </main>
 
-        <footer class="border-t border-slate-200 py-6 text-center text-sm text-slate-400">
+        <footer class="border-t border-white/50 py-6 text-center text-sm text-slate-500">
             Built with Laravel · Vue 3 · Inertia · Tailwind — running in Docker
         </footer>
     </div>

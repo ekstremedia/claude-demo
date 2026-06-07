@@ -22,6 +22,6 @@ createInertiaApp({
     },
     // The thin loading bar shown during Inertia visits.
     progress: {
-        color: '#6366f1',
+        color: '#0ea5e9',
     },
 });
