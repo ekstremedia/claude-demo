@@ -4,7 +4,7 @@
 // multi-minute lifespan). Mirror of Duck::LIFESPAN_SECONDS on the PHP side.
 
 /** Time from a full belly to starvation, in milliseconds. */
-export const LIFESPAN_MS = 180_000;
+export const LIFESPAN_MS = 60_000;
 
 export type Hunger = 'content' | 'peckish' | 'hungry' | 'starving';
 

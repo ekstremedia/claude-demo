@@ -165,10 +165,13 @@ export function usePondScene(
         if (!isInside(bounds, x, y)) {
             return;
         }
-        const n = 3 + Math.floor(Math.random() * 3);
+        // A wider, pond-relative scatter so a toss fans out and ducks spread to
+        // different crumbs instead of clumping over one spot.
+        const spread = Math.min(bounds.rx, bounds.ry) * 0.18;
+        const n = 4 + Math.floor(Math.random() * 3);
         for (let i = 0; i < n; i++) {
             const a = Math.random() * Math.PI * 2;
-            const r = Math.random() * 12;
+            const r = Math.sqrt(Math.random()) * spread;
             const cx = x + Math.cos(a) * r;
             const cy = y + Math.sin(a) * r;
             // Keep the scatter inside the pond — a crumb just past the rim would
