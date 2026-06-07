@@ -7,14 +7,6 @@ use App\Domains\Pond\Enums\DuckMood;
 use App\Domains\Pond\Models\Duck;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-it('increments quack_count by one when it quacks', function () {
-    $duck = Duck::factory()->create(['quack_count' => 0]);
-
-    $duck->quack();
-
-    expect($duck->fresh()->quack_count)->toBe(1);
-});
-
 it('casts colour and mood to their enums', function () {
     $duck = Duck::factory()->create([
         'color' => DuckColor::Pink,

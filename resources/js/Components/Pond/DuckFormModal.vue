@@ -19,7 +19,6 @@ const form = useForm({
     pond_id: null as number | null,
     color: 'yellow',
     mood: 'happy',
-    happiness: 3,
     adopted_at: new Date().toISOString().slice(0, 10),
     bio: '',
 });
@@ -37,7 +36,6 @@ watch(
             form.pond_id = props.duck.pond?.id ?? null;
             form.color = props.duck.color.value;
             form.mood = props.duck.mood.value;
-            form.happiness = props.duck.happiness;
             form.adopted_at = props.duck.adopted_at;
             form.bio = props.duck.bio ?? '';
         } else {
@@ -112,22 +110,6 @@ function submit(): void {
                     <option v-for="p in ponds" :key="p.id" :value="p.id">{{ p.name }}</option>
                 </select>
                 <p v-if="form.errors.pond_id" class="mt-1 text-xs text-rose-500">{{ form.errors.pond_id }}</p>
-            </div>
-
-            <div>
-                <span class="block text-sm font-medium text-slate-700">Happiness</span>
-                <div class="mt-1 flex gap-1">
-                    <button
-                        v-for="n in 5"
-                        :key="n"
-                        type="button"
-                        class="text-2xl leading-none transition"
-                        :class="n <= form.happiness ? 'text-amber-400' : 'text-slate-300 hover:text-amber-200'"
-                        :aria-label="`Set happiness to ${n}`"
-                        @click="form.happiness = n"
-                    >★</button>
-                </div>
-                <p v-if="form.errors.happiness" class="mt-1 text-xs text-rose-500">{{ form.errors.happiness }}</p>
             </div>
 
             <div>

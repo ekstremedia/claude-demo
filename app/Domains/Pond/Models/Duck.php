@@ -21,10 +21,10 @@ use Illuminate\Support\Carbon;
  * @property string $name
  * @property DuckColor $color
  * @property DuckMood $mood
- * @property int $quack_count
- * @property int $happiness
  * @property Carbon $adopted_at
  * @property string|null $bio
+ * @property Carbon|null $last_fed_at
+ * @property Carbon|null $died_at
  * @property Carbon $created_at
  * @property Carbon $updated_at
  * @property-read Pond|null $pond
@@ -35,14 +35,11 @@ class Duck extends Model
     /** @use HasFactory<DuckFactory> */
     use HasFactory;
 
-    /**
-     * Mass-assignable attributes. Note `quack_count` is intentionally absent:
-     * it's a counter only ever changed through {@see Duck::quack()}, never from
-     * user input.
-     *
-     * @var list<string>
-     */
-    protected $fillable = ['pond_id', 'name', 'color', 'mood', 'happiness', 'adopted_at', 'bio'];
+    /** Seconds a duck may go unfed before it starves — the single survival tunable. */
+    public const int LIFESPAN_SECONDS = 180;
+
+    /** @var list<string> */
+    protected $fillable = ['pond_id', 'name', 'color', 'mood', 'adopted_at', 'bio', 'last_fed_at', 'died_at'];
 
     /** @return array<string, string> */
     protected function casts(): array
@@ -51,9 +48,9 @@ class Duck extends Model
             'pond_id' => 'integer',
             'color' => DuckColor::class,
             'mood' => DuckMood::class,
-            'quack_count' => 'integer',
-            'happiness' => 'integer',
             'adopted_at' => 'date',
+            'last_fed_at' => 'datetime',
+            'died_at' => 'datetime',
         ];
     }
 
@@ -61,14 +58,5 @@ class Duck extends Model
     public function pond(): BelongsTo
     {
         return $this->belongsTo(Pond::class);
-    }
-
-    /**
-     * Give this duck a squeeze — bump its lifetime quack tally by one.
-     * Uses an atomic increment so concurrent quacks never lose a count.
-     */
-    public function quack(): void
-    {
-        $this->increment('quack_count');
     }
 }

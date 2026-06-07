@@ -1,5 +1,5 @@
 // Shared TypeScript shapes for the Rubber Duck Pond. These mirror exactly what
-// the controllers send (see DuckController::presentDuck / stats), so the Vue
+// the controllers send (see DuckResource / DuckController::stats), so the Vue
 // side is fully typed end to end.
 
 export interface EnumOption {
@@ -26,23 +26,18 @@ export interface Duck {
     pond: DuckPond | null;
     color: ColorOption;
     mood: MoodOption;
-    quack_count: number;
-    happiness: number;
     adopted_at: string;
     bio: string | null;
-}
-
-export interface Pond {
-    id: number;
-    name: string;
-    description: string | null;
-    ducks_count: number;
+    // Survival timestamps (ISO 8601). The canvas derives each duck's life from
+    // these — see pondLife.ts (mirror of Duck::LIFESPAN_SECONDS on the server).
+    created_at: string;
+    last_fed_at: string | null;
+    died_at: string | null;
 }
 
 export interface DuckStats {
     total_ducks: number;
     total_ponds: number;
-    total_quacks: number;
     by_mood: Record<string, number>;
 }
 

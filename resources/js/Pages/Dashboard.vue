@@ -13,7 +13,7 @@ const count = ref(0);
     <AppLayout>
         <div class="flex items-center justify-between">
             <h1 class="text-3xl font-bold tracking-tight text-slate-900">Dashboard</h1>
-            <Link href="/" class="text-sm font-medium text-indigo-600 hover:text-indigo-500">← Back home</Link>
+            <Link href="/" class="text-sm font-medium text-emerald-700 hover:text-emerald-600">← Back home</Link>
         </div>
 
         <p class="mt-3 text-slate-600">
@@ -25,7 +25,7 @@ const count = ref(0);
             <div class="mt-3 flex items-center gap-4">
                 <button
                     type="button"
-                    class="rounded-lg bg-indigo-600 px-4 py-2 font-medium text-white transition hover:bg-indigo-500"
+                    class="rounded-lg bg-emerald-600 px-4 py-2 font-medium text-white transition hover:bg-emerald-500"
                     @click="count++"
                 >
                     Clicked {{ count }} {{ count === 1 ? 'time' : 'times' }}

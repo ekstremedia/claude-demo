@@ -17,10 +17,11 @@ return new class extends Migration
             $table->string('name');
             $table->string('color');  // backed by the DuckColor enum
             $table->string('mood');   // backed by the DuckMood enum
-            $table->unsignedInteger('quack_count')->default(0);
-            $table->unsignedTinyInteger('happiness')->default(3); // 1–5 quack-rating
             $table->date('adopted_at');
             $table->text('bio')->nullable();
+            // Survival: when the duck last ate, and when it starved (if it did).
+            $table->timestamp('last_fed_at')->nullable();
+            $table->timestamp('died_at')->nullable()->index();
             $table->timestamps();
 
             // Indexes backing the index-page search and filters.

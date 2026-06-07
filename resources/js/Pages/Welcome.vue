@@ -23,7 +23,7 @@ const stack = [
 
     <AppLayout>
         <section class="text-center">
-            <p class="text-sm font-semibold uppercase tracking-widest text-indigo-600">Claude Code Demo</p>
+            <p class="text-sm font-semibold uppercase tracking-widest text-sky-700">Claude Code Demo</p>
             <h1 class="mt-3 text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
                 Laravel + Vue + Inertia, in a container
             </h1>
@@ -35,7 +35,7 @@ const stack = [
             <div class="mt-8 flex items-center justify-center gap-3">
                 <Link
                     href="/dashboard"
-                    class="rounded-lg bg-indigo-600 px-5 py-2.5 font-medium text-white shadow-sm transition hover:bg-indigo-500"
+                    class="rounded-lg bg-gradient-to-r from-sky-500 to-emerald-500 px-5 py-2.5 font-medium text-white shadow-sm transition hover:from-sky-600 hover:to-emerald-600"
                 >
                     Open the dashboard →
                 </Link>
