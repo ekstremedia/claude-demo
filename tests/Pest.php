@@ -15,8 +15,17 @@ use Tests\TestCase;
 | and rolls each test back in a transaction, so no test ever leaks state into
 | the next one.
 |
+| Feature tests also stub the Vite directive (withoutVite) so rendering a page
+| never needs a built `public/build/manifest.json` — CI runs the PHP suite
+| without compiling front-end assets.
+|
 */
 
 pest()->extend(TestCase::class)
     ->use(RefreshDatabase::class)
-    ->in('Feature', 'Unit');
+    ->beforeEach(fn () => $this->withoutVite())
+    ->in('Feature');
+
+pest()->extend(TestCase::class)
+    ->use(RefreshDatabase::class)
+    ->in('Unit');
