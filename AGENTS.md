@@ -82,7 +82,7 @@ The backing services are separate containers (`docker-compose.yml`): `postgres`,
 
 ## Key files
 
-```
+```text
 routes/web.php                         # / and /dashboard → Inertia::render
 app/Http/Middleware/HandleInertiaRequests.php   # shared props (appName, flash)
 bootstrap/app.php                      # registers the Inertia middleware (web group)

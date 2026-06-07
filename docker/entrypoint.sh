@@ -10,11 +10,21 @@ if ! grep -qE '^APP_KEY=base64:' .env 2>/dev/null; then
     php artisan key:generate --force
 fi
 
-# Wait for Postgres (compose healthcheck usually covers this, but be defensive).
-echo "Waiting for database at ${DB_HOST:-postgres}:${DB_PORT:-5432}..."
-until pg_isready -h "${DB_HOST:-postgres}" -p "${DB_PORT:-5432}" -U "${DB_USERNAME:-claude}" >/dev/null 2>&1; do
-    sleep 1
-done
+# Wait for Postgres when that's the driver (compose healthcheck usually covers
+# this, but be defensive). Bounded so an unreachable DB can't hang boot forever.
+if [ "${DB_CONNECTION:-pgsql}" = "pgsql" ]; then
+    db_wait_timeout="${DB_WAIT_TIMEOUT:-60}"
+    elapsed=0
+    echo "Waiting for database at ${DB_HOST:-postgres}:${DB_PORT:-5432}..."
+    until pg_isready -h "${DB_HOST:-postgres}" -p "${DB_PORT:-5432}" -U "${DB_USERNAME:-claude}" >/dev/null 2>&1; do
+        elapsed=$((elapsed + 1))
+        if [ "$elapsed" -ge "$db_wait_timeout" ]; then
+            echo "Database not ready after ${db_wait_timeout}s; exiting." >&2
+            exit 1
+        fi
+        sleep 1
+    done
+fi
 
 # Migrations are idempotent — bring the schema up to date on every boot.
 php artisan migrate --force

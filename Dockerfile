@@ -3,7 +3,7 @@
 FROM php:8.4-fpm
 
 # System deps + PHP extensions Laravel needs for Postgres + Redis.
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
         git \
         curl \
         ca-certificates \

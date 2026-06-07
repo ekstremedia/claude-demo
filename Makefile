@@ -10,8 +10,8 @@ APP_URL ?= http://localhost:8120
 MAILPIT_HOST_PORT ?= 8125
 
 .PHONY: help build up down restart destroy shell tinker logs logs-all \
-        migrate fresh seed test composer-install npm-install build-assets \
-        mcp _require-local
+        migrate fresh seed test test-js typecheck pint stan \
+        composer-install npm-install build-assets mcp _require-local
 
 help: ## Show this help
 	@echo "Claude Demo — available commands:"
@@ -65,8 +65,20 @@ fresh: _require-local ## Drop, re-migrate and re-seed the database (local only)
 seed: ## Run database seeders
 	docker compose exec $(APP_SERVICE) php artisan db:seed
 
-test: ## Run the test suite
+test: ## Run the PHP test suite (Pest)
 	docker compose exec $(APP_SERVICE) php artisan test
+
+test-js: ## Run the frontend test suite (Vitest)
+	docker compose exec $(APP_SERVICE) npm run test
+
+typecheck: ## Type-check the frontend (vue-tsc)
+	docker compose exec $(APP_SERVICE) npm run typecheck
+
+pint: ## Check PHP code style (Pint)
+	docker compose exec $(APP_SERVICE) vendor/bin/pint --test
+
+stan: ## Run static analysis (Larastan)
+	docker compose exec $(APP_SERVICE) vendor/bin/phpstan analyse --memory-limit=1G
 
 composer-install: ## composer install inside the container
 	docker compose exec $(APP_SERVICE) composer install
