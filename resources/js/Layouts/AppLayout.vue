@@ -9,6 +9,7 @@ const appName = computed(() => (page.props.appName as string) ?? 'Claude Demo');
 const nav = [
     { label: 'Home', href: '/' },
     { label: 'Dashboard', href: '/dashboard' },
+    { label: 'Pond 🦆', href: '/pond' },
 ];
 </script>
 

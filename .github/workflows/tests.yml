@@ -1,0 +1,76 @@
+name: Tests
+
+on:
+  push:
+    branches: [main, demo]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (Pint · Larastan · Pest)
+    runs-on: ubuntu-latest
+    # Tests run on in-memory SQLite (forced by phpunit.xml), so no database
+    # service is needed here.
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, bcmath, pdo_sqlite, sqlite3
+          coverage: none
+
+      - name: Copy environment file
+        run: cp .env.example .env
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: vendor-${{ runner.os }}-php8.4-${{ hashFiles('composer.lock') }}
+          restore-keys: vendor-${{ runner.os }}-php8.4-
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Generate application key
+        run: php artisan key:generate
+
+      - name: Check code style (Pint)
+        run: vendor/bin/pint --test
+
+      - name: Static analysis (Larastan)
+        run: vendor/bin/phpstan analyse --memory-limit=1G --no-progress
+
+      - name: Run tests (Pest)
+        run: php artisan test --compact
+
+  frontend:
+    name: Frontend (tsc · Vitest · build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install NPM dependencies
+        run: npm ci
+
+      - name: Type-check (vue-tsc)
+        run: npm run typecheck
+
+      - name: Run tests (Vitest)
+        run: npm run test
+
+      - name: Build assets
+        run: npm run build
