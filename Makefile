@@ -10,7 +10,7 @@ APP_URL ?= http://localhost:8120
 MAILPIT_HOST_PORT ?= 8125
 
 .PHONY: help build up down restart destroy shell tinker logs logs-all \
-        migrate fresh seed test test-js typecheck pint stan \
+        migrate fresh seed test test-js typecheck pint stan vite-restart \
         composer-install npm-install build-assets mcp _require-local
 
 help: ## Show this help
@@ -21,11 +21,13 @@ help: ## Show this help
 build: ## Build images and start everything (creates .env if missing)
 	@[ -f .env ] || { cp .env.example .env; echo "  → created .env from .env.example"; }
 	docker compose up -d --build
+	@$(MAKE) --no-print-directory vite-restart
 	@$(MAKE) --no-print-directory _urls
 
-up: ## Start all containers (creates .env if missing)
+up: ## Start all containers (creates .env if missing) and refresh the Vite dev server
 	@[ -f .env ] || { cp .env.example .env; echo "  → created .env from .env.example"; }
 	docker compose up -d
+	@$(MAKE) --no-print-directory vite-restart
 	@$(MAKE) --no-print-directory _urls
 
 down: ## Stop all containers
@@ -88,6 +90,11 @@ npm-install: ## npm install inside the container
 
 build-assets: ## Build frontend assets for production
 	docker compose exec $(APP_SERVICE) npm run build
+
+vite-restart: ## Restart the Vite dev server with a clean optimizer cache
+	@echo "  → (re)starting Vite dev server with a clean cache…"
+	@docker compose exec -T $(APP_SERVICE) sh -c 'for i in $$(seq 1 30); do supervisorctl status vite >/dev/null 2>&1 && break; sleep 1; done; supervisorctl stop vite >/dev/null 2>&1 || true; rm -rf .vite node_modules/.vite; supervisorctl start vite >/dev/null 2>&1 || true' || true
+	@echo "  → Vite dev server ready"
 
 mcp: ## Run the Laravel Boost MCP server (used by your AI agent via .mcp.json)
 	docker compose exec -T $(APP_SERVICE) php artisan boost:mcp

@@ -17,7 +17,7 @@ jobs:
     # Tests run on in-memory SQLite (forced by phpunit.xml), so no database
     # service is needed here.
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -30,7 +30,7 @@ jobs:
         run: cp .env.example .env
 
       - name: Cache Composer dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: vendor
           key: vendor-${{ runner.os }}-php8.4-${{ hashFiles('composer.lock') }}
@@ -55,10 +55,10 @@ jobs:
     name: Frontend (tsc · Vitest · build)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: '20'
           cache: 'npm'
