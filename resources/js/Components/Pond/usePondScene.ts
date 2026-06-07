@@ -30,9 +30,10 @@ interface Sprite {
     tween: gsap.core.Tween | null;
     life: number; // 0..1, recomputed each frame from data
     dead: boolean;
-    eating: boolean; // beelining to a crumb (mood swim suspended)
+    eating: boolean; // beelining to / pecking at a crumb (mood swim suspended)
     claimedCrumb: number | null;
     eatPop: number; // one-shot nibble scale
+    peck: number; // 0..1 head-bow toward the water while eating
     bellyFlip: number; // 0..1 flip-to-belly-up on death
 }
 
@@ -90,6 +91,7 @@ export function usePondScene(
     let reducedMotion = false;
     let hoverId: number | null = null;
     let lastAllDead = false;
+    let crumbsEaten = 0;
     let observer: ResizeObserver | null = null;
     const feedQueue = new Set<number>();
     const dieQueue = new Set<number>();
@@ -237,14 +239,33 @@ export function usePondScene(
                 duration: dur,
                 ease: 'power2.out',
                 overwrite: 'auto',
-                onComplete: () => eatCrumb(s, cid),
+                onComplete: () => startEating(s, cid),
             });
         }
+    }
+
+    /** On arrival at the crumb: bow the head and peck a couple of times, then consume. */
+    function startEating(s: Sprite, crumbId: number): void {
+        if (reducedMotion) {
+            eatCrumb(s, crumbId);
+            return;
+        }
+        // peck 0→1→0 twice (yoyo, repeat 3), then swallow on completion.
+        s.tween = gsap.to(s, {
+            peck: 1,
+            duration: 0.2,
+            ease: 'sine.inOut',
+            yoyo: true,
+            repeat: 3,
+            overwrite: 'auto',
+            onComplete: () => eatCrumb(s, crumbId),
+        });
     }
 
     function eatCrumb(s: Sprite, crumbId: number): void {
         s.eating = false;
         s.claimedCrumb = null;
+        s.peck = 0;
         const crumb = crumbs.find((c) => c.id === crumbId);
         if (crumb) {
             crumb.eaten = true;
@@ -259,6 +280,7 @@ export function usePondScene(
             // snap back before the batched POST round-trips.
             s.data = { ...s.data, last_fed_at: new Date().toISOString() };
             s.life = 1;
+            crumbsEaten++;
             queueFeed(s.data.id);
         }
         if (running && !reducedMotion && !s.dead) {
@@ -289,6 +311,7 @@ export function usePondScene(
         }
         s.dead = true;
         s.eating = false;
+        s.peck = 0;
         s.life = 0;
         s.highlight = 0;
         s.tween?.kill();
@@ -415,8 +438,13 @@ export function usePondScene(
         const flip = Math.cos(s.heading) < 0 ? -1 : 1;
         const pop = 1 + s.eatPop * 0.18 + s.highlight * 0.08;
         const vy = s.dead ? 1 - 2 * s.bellyFlip : 1; // flip belly-up on death
+        // Bow-to-peck: the head/beak/eye dip down-and-forward toward the water.
+        // Done in local space (where +y is screen-down regardless of facing) so it
+        // stays correct for left- and right-facing ducks — never rotate the sprite.
+        const dipY = s.peck * 11;
+        const dipX = s.peck * 3;
         ctx.save();
-        ctx.translate(s.x, s.y + (s.dead ? 0 : bob));
+        ctx.translate(s.x, s.y + (s.dead ? 0 : bob) + s.peck * 2);
         ctx.scale(flip * pop, vy * pop);
         // soft drop shadow on the body itself (glossy lift)
         ctx.shadowColor = 'rgba(8,47,73,0.25)';
@@ -427,9 +455,9 @@ export function usePondScene(
         ctx.beginPath();
         ctx.ellipse(0, 0, 22, 15, 0, 0, Math.PI * 2);
         ctx.fill();
-        // head
+        // head (dips toward the water while pecking)
         ctx.beginPath();
-        ctx.ellipse(15, -11, 10, 10, 0, 0, Math.PI * 2);
+        ctx.ellipse(15 + dipX, -11 + dipY, 10, 10, 0, 0, Math.PI * 2);
         ctx.fill();
         ctx.shadowBlur = 0;
         ctx.shadowOffsetY = 0;
@@ -441,12 +469,13 @@ export function usePondScene(
         ctx.ellipse(-5, -7, 9, 5, -0.3, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
-        // beak
+        // beak — follows the head, and its tip pitches further down into the water
+        const beakTipDip = s.peck * 4;
         ctx.fillStyle = '#fb923c';
         ctx.beginPath();
-        ctx.moveTo(23, -12);
-        ctx.lineTo(33, -10);
-        ctx.lineTo(23, -7.5);
+        ctx.moveTo(23 + dipX, -12 + dipY);
+        ctx.lineTo(33 + dipX, -10 + dipY + beakTipDip);
+        ctx.lineTo(23 + dipX, -7.5 + dipY);
         ctx.closePath();
         ctx.fill();
         // eye — a dot when alive, an X when dead
@@ -457,7 +486,7 @@ export function usePondScene(
             drawX(ctx, 18, -13, 2.6);
         } else {
             ctx.beginPath();
-            ctx.arc(18, -13, 2, 0, Math.PI * 2);
+            ctx.arc(18 + dipX, -13 + dipY, 2, 0, Math.PI * 2);
             ctx.fill();
         }
         ctx.restore();
@@ -522,7 +551,7 @@ export function usePondScene(
                 const want = Math.atan2(s.target.y - s.y, s.target.x - s.x);
                 s.heading = lerpAngle(s.heading, want, s.profile.turnSharpness * 0.2);
             }
-            const bob = s.dead
+            const bob = s.dead || s.peck > 0.01
                 ? 0
                 : reducedMotion
                   ? Math.sin(time * 0.4 + s.bobPhase) * 1.5
@@ -600,6 +629,7 @@ export function usePondScene(
                     eating: false,
                     claimedCrumb: null,
                     eatPop: 0,
+                    peck: 0,
                     bellyFlip: duck.died_at !== null ? 1 : 0,
                 };
                 sprites.push(sprite);
