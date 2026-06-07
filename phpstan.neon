@@ -1,0 +1,13 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    paths:
+        - app
+        - config
+        - database
+        - routes
+    # Level 5 catches type mismatches on arguments/returns without demanding
+    # exhaustive native type hints everywhere — a pragmatic bar for a demo that
+    # still reads as production-grade.
+    level: 5

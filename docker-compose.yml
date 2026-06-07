@@ -1,0 +1,62 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${APP_HOST_PORT:-8120}:80"
+      # Vite is published 1:1 — the browser loads assets/HMR from this exact
+      # port, so the container must also listen on it (see vite.config.ts).
+      - "${VITE_HOST_PORT:-5173}:${VITE_HOST_PORT:-5173}"
+    volumes:
+      # Bind-mount the project for live editing.
+      - .:/var/www/html
+      # Named volumes shadow the bind mount for vendor/ and node_modules/.
+      # Docker seeds them from the built image on first run, which avoids slow
+      # bind-mount IO on Docker Desktop and keeps deps isolated from the host.
+      - app-vendor:/var/www/html/vendor
+      - app-node-modules:/var/www/html/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-claude_demo}
+      POSTGRES_USER: ${DB_USERNAME:-claude}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-claude}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  mailpit:
+    image: axllent/mailpit
+    restart: unless-stopped
+    ports:
+      - "${MAILPIT_HOST_PORT:-8125}:8025"
+
+volumes:
+  postgres-data:
+  redis-data:
+  app-vendor:
+  app-node-modules:
