@@ -17,5 +17,9 @@ describe('profileFor', () => {
 
     it('only zen traces gentle arcs', () => {
         expect(MOOD_PROFILES.zen.pathStyle).toBe('arc');
+
+        for (const mood of ['happy', 'sleepy', 'excited', 'grumpy'] as const) {
+            expect(MOOD_PROFILES[mood].pathStyle).not.toBe('arc');
+        }
     });
 });

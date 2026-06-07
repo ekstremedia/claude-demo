@@ -356,6 +356,12 @@ export function usePondScene(
                 s.x = p.x;
                 s.y = p.y;
             }
+            // The in-flight leg was aimed at the old bounds and could now lead
+            // off-canvas — restart it within the resized pond.
+            if (running && !reducedMotion) {
+                s.tween?.kill();
+                scheduleSwim(s);
+            }
         }
     }
 
