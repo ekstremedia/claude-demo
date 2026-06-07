@@ -44,7 +44,7 @@ function clearFilters(): void {
     filters.color = '';
 }
 
-// --- Adopt / edit / quack / release ---------------------------------------
+// --- Adopt / edit / release -----------------------------------------------
 const showForm = ref(false);
 const editing = ref<Duck | null>(null);
 
@@ -56,10 +56,6 @@ function adopt(): void {
 function edit(duck: Duck): void {
     editing.value = duck;
     showForm.value = true;
-}
-
-function quack(duck: Duck): void {
-    router.post(`/ducks/${duck.id}/quack`, {}, { preserveScroll: true, preserveState: true });
 }
 
 function release(duck: Duck): void {
@@ -77,15 +73,15 @@ function release(duck: Duck): void {
         <div class="flex flex-wrap items-end justify-between gap-4">
             <div>
                 <p class="text-sm font-semibold uppercase tracking-widest text-sky-600">Rubber Duck Pond</p>
-                <h1 class="mt-1 text-3xl font-bold tracking-tight text-slate-900">The Pond 🦆</h1>
-                <p class="mt-1 text-slate-500">Adopt, sort and squeeze your flock of rubber ducks.</p>
+                <h1 class="mt-1 text-3xl font-bold tracking-tight text-slate-900">Ducks 🦆</h1>
+                <p class="mt-1 text-slate-500">Adopt, sort and tend your flock of rubber ducks.</p>
             </div>
             <div class="flex items-center gap-2">
                 <Link
                     href="/ponds"
                     class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
                 >
-                    Manage ponds
+                    View the pond
                 </Link>
                 <button
                     type="button"
@@ -98,10 +94,9 @@ function release(duck: Duck): void {
         </div>
 
         <!-- Stats -->
-        <div class="mt-8 grid gap-4 sm:grid-cols-3">
+        <div class="mt-8 grid gap-4 sm:grid-cols-2">
             <StatBadge label="Ducks" :value="stats.total_ducks" icon="🦆" />
             <StatBadge label="Ponds" :value="stats.total_ponds" icon="🌊" />
-            <StatBadge label="Total quacks" :value="stats.total_quacks" icon="🔊" />
         </div>
         <div class="mt-4 flex flex-wrap gap-2">
             <span
@@ -153,7 +148,6 @@ function release(duck: Duck): void {
                 v-for="duck in ducks.data"
                 :key="duck.id"
                 :duck="duck"
-                @quack="quack"
                 @edit="edit"
                 @release="release"
             />

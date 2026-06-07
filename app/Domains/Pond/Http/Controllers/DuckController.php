@@ -8,6 +8,7 @@ use App\Domains\Pond\Enums\DuckColor;
 use App\Domains\Pond\Enums\DuckMood;
 use App\Domains\Pond\Http\Requests\StoreDuckRequest;
 use App\Domains\Pond\Http\Requests\UpdateDuckRequest;
+use App\Domains\Pond\Http\Resources\DuckResource;
 use App\Domains\Pond\Models\Duck;
 use App\Domains\Pond\Models\Pond;
 use App\Http\Controllers\Controller;
@@ -20,7 +21,7 @@ use Inertia\Response;
 
 /**
  * The heart of the pond: lists ducks with search/filter/stats, and handles
- * adopting, editing, releasing and — of course — quacking.
+ * adopting, editing and releasing them.
  */
 class DuckController extends Controller
 {
@@ -53,7 +54,7 @@ class DuckController extends Controller
             ->latest()
             ->paginate(self::PER_PAGE)
             ->withQueryString()
-            ->through(fn (Duck $duck) => $this->presentDuck($duck));
+            ->through(fn (Duck $duck) => (new DuckResource($duck))->resolve());
 
         return Inertia::render('Pond/Index', [
             'ducks' => $ducks,
@@ -96,58 +97,16 @@ class DuckController extends Controller
         return back()->with('success', "👋 {$name} waddled off.");
     }
 
-    /** Give a duck a squeeze — increment its lifetime quack tally. */
-    public function quack(Duck $duck): RedirectResponse
-    {
-        $duck->quack();
-
-        return back()->with('success', "🦆 {$duck->name} says QUACK! ({$duck->quack_count} total)");
-    }
-
-    /**
-     * Shape a duck for the frontend: enums become {value,label,…} objects so the
-     * Vue side never depends on PHP enum serialization, and dates are ISO strings.
-     *
-     * @return array{
-     *     id: int,
-     *     name: string,
-     *     pond: array{id: int, name: string}|null,
-     *     color: array{value: string, label: string, hex: string},
-     *     mood: array{value: string, label: string, emoji: string},
-     *     quack_count: int,
-     *     happiness: int,
-     *     adopted_at: string,
-     *     bio: string|null,
-     * }
-     */
-    private function presentDuck(Duck $duck): array
-    {
-        return [
-            'id' => $duck->id,
-            'name' => $duck->name,
-            'pond' => $duck->pond === null
-                ? null
-                : ['id' => $duck->pond->id, 'name' => $duck->pond->name],
-            'color' => $duck->color->toArray(),
-            'mood' => $duck->mood->toArray(),
-            'quack_count' => $duck->quack_count,
-            'happiness' => $duck->happiness,
-            'adopted_at' => $duck->adopted_at->toDateString(),
-            'bio' => $duck->bio,
-        ];
-    }
-
     /**
      * Headline numbers for the stats bar above the grid.
      *
-     * @return array{total_ducks: int, total_ponds: int, total_quacks: int, by_mood: array<string, int>}
+     * @return array{total_ducks: int, total_ponds: int, by_mood: array<string, int>}
      */
     private function stats(): array
     {
         return [
             'total_ducks' => Duck::count(),
             'total_ponds' => Pond::count(),
-            'total_quacks' => (int) Duck::sum('quack_count'),
             'by_mood' => Duck::query()
                 ->selectRaw('mood, COUNT(*) as aggregate')
                 ->groupBy('mood')

@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 namespace App\Domains\Pond\Http\Controllers;
 
+use App\Domains\Pond\Enums\DuckColor;
+use App\Domains\Pond\Enums\DuckMood;
 use App\Domains\Pond\Http\Requests\StorePondRequest;
 use App\Domains\Pond\Http\Requests\UpdatePondRequest;
+use App\Domains\Pond\Http\Resources\DuckResource;
+use App\Domains\Pond\Models\Duck;
 use App\Domains\Pond\Models\Pond;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
@@ -13,15 +17,23 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * Manage the ponds that ducks call home. Lighter than {@see DuckController} —
- * just enough CRUD to create, rename and drain ponds.
+ * Manage the ponds that ducks call home, and render the animated pond canvas
+ * where every duck floats around with mood-driven motion.
  */
 class PondController extends Controller
 {
-    /** List every pond with a live count of its resident ducks. */
+    /**
+     * The pond page: every duck (for the canvas) plus the pond list and the
+     * option lists the duck edit form needs when a duck is clicked.
+     */
     public function index(): Response
     {
         return Inertia::render('Pond/Ponds', [
+            'ducks' => Duck::query()
+                ->with('pond:id,name')
+                ->orderBy('name')
+                ->get()
+                ->map(fn (Duck $duck) => (new DuckResource($duck))->resolve()),
             'ponds' => Pond::query()
                 ->withCount('ducks')
                 ->orderBy('name')
@@ -32,6 +44,10 @@ class PondController extends Controller
                     'description' => $pond->description,
                     'ducks_count' => (int) $pond->ducks_count,
                 ]),
+            'options' => [
+                'colors' => DuckColor::options(),
+                'moods' => DuckMood::options(),
+            ],
         ]);
     }
 

@@ -26,8 +26,6 @@ class DuckFactory extends Factory
             'name' => fake()->firstName().' the Duck',
             'color' => fake()->randomElement(DuckColor::cases()),
             'mood' => fake()->randomElement(DuckMood::cases()),
-            'quack_count' => fake()->numberBetween(0, 200),
-            'happiness' => fake()->numberBetween(1, 5),
             'adopted_at' => fake()->dateTimeBetween('-2 years', 'now'),
             'bio' => fake()->boolean(60) ? fake()->sentence() : null,
         ];
@@ -36,18 +34,12 @@ class DuckFactory extends Factory
     /** A cheerful duck on top of the world. */
     public function happy(): static
     {
-        return $this->state(fn (): array => [
-            'mood' => DuckMood::Happy,
-            'happiness' => 5,
-        ]);
+        return $this->state(fn (): array => ['mood' => DuckMood::Happy]);
     }
 
     /** A duck who woke up on the wrong side of the pond. */
     public function grumpy(): static
     {
-        return $this->state(fn (): array => [
-            'mood' => DuckMood::Grumpy,
-            'happiness' => 1,
-        ]);
+        return $this->state(fn (): array => ['mood' => DuckMood::Grumpy]);
     }
 }

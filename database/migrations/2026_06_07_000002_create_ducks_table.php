@@ -17,8 +17,6 @@ return new class extends Migration
             $table->string('name');
             $table->string('color');  // backed by the DuckColor enum
             $table->string('mood');   // backed by the DuckMood enum
-            $table->unsignedInteger('quack_count')->default(0);
-            $table->unsignedTinyInteger('happiness')->default(3); // 1–5 quack-rating
             $table->date('adopted_at');
             $table->text('bio')->nullable();
             $table->timestamps();

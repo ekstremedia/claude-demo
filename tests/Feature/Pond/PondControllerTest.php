@@ -6,7 +6,7 @@ use App\Domains\Pond\Models\Duck;
 use App\Domains\Pond\Models\Pond;
 use Inertia\Testing\AssertableInertia as Assert;
 
-it('renders the ponds index with duck counts', function () {
+it('renders the pond page with canvas ducks, the pond list and form options', function () {
     $pond = Pond::factory()->create();
     Duck::factory()->count(2)->for($pond)->create();
 
@@ -14,8 +14,11 @@ it('renders the ponds index with duck counts', function () {
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('Pond/Ponds')
+            ->has('ducks', 2)
             ->has('ponds', 1)
-            ->where('ponds.0.ducks_count', 2));
+            ->where('ponds.0.ducks_count', 2)
+            ->has('options.colors')
+            ->has('options.moods'));
 });
 
 it('digs a new pond', function () {

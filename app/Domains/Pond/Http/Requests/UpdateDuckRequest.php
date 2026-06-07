@@ -10,8 +10,7 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 /**
- * Validates edits to an existing duck. A duck's `quack_count` is deliberately
- * not editable here — it only ever changes through the quack action.
+ * Validates edits to an existing duck.
  */
 class UpdateDuckRequest extends FormRequest
 {
@@ -30,7 +29,6 @@ class UpdateDuckRequest extends FormRequest
             'pond_id' => ['nullable', 'integer', Rule::exists('ponds', 'id')],
             'color' => ['required', Rule::enum(DuckColor::class)],
             'mood' => ['required', Rule::enum(DuckMood::class)],
-            'happiness' => ['required', 'integer', 'between:1,5'],
             'adopted_at' => ['required', 'date'],
             'bio' => ['nullable', 'string', 'max:2000'],
         ];

@@ -29,7 +29,6 @@ it('adopts a duck from valid input', function () {
         'pond_id' => $pond->id,
         'color' => DuckColor::Yellow->value,
         'mood' => DuckMood::Happy->value,
-        'happiness' => 5,
         'adopted_at' => '2026-01-01',
         'bio' => 'A very happy duck.',
     ])
@@ -45,7 +44,6 @@ it('lets a duck be homeless (null pond)', function () {
         'pond_id' => null,
         'color' => DuckColor::White->value,
         'mood' => DuckMood::Zen->value,
-        'happiness' => 3,
         'adopted_at' => '2026-01-01',
     ])->assertRedirect();
 
@@ -55,11 +53,10 @@ it('lets a duck be homeless (null pond)', function () {
 it('rejects invalid input', function (array $payload, string $errorField) {
     $this->post('/ducks', $payload)->assertSessionHasErrors($errorField);
 })->with([
-    'invalid colour' => [['name' => 'X', 'color' => 'rainbow', 'mood' => 'happy', 'happiness' => 3, 'adopted_at' => '2026-01-01'], 'color'],
-    'invalid mood' => [['name' => 'X', 'color' => 'yellow', 'mood' => 'hangry', 'happiness' => 3, 'adopted_at' => '2026-01-01'], 'mood'],
-    'happiness too high' => [['name' => 'X', 'color' => 'yellow', 'mood' => 'happy', 'happiness' => 6, 'adopted_at' => '2026-01-01'], 'happiness'],
-    'missing name' => [['color' => 'yellow', 'mood' => 'happy', 'happiness' => 3, 'adopted_at' => '2026-01-01'], 'name'],
-    'non-existent pond' => [['name' => 'X', 'pond_id' => 999, 'color' => 'yellow', 'mood' => 'happy', 'happiness' => 3, 'adopted_at' => '2026-01-01'], 'pond_id'],
+    'invalid colour' => [['name' => 'X', 'color' => 'rainbow', 'mood' => 'happy', 'adopted_at' => '2026-01-01'], 'color'],
+    'invalid mood' => [['name' => 'X', 'color' => 'yellow', 'mood' => 'hangry', 'adopted_at' => '2026-01-01'], 'mood'],
+    'missing name' => [['color' => 'yellow', 'mood' => 'happy', 'adopted_at' => '2026-01-01'], 'name'],
+    'non-existent pond' => [['name' => 'X', 'pond_id' => 999, 'color' => 'yellow', 'mood' => 'happy', 'adopted_at' => '2026-01-01'], 'pond_id'],
 ]);
 
 it('updates a duck', function () {
@@ -70,7 +67,6 @@ it('updates a duck', function () {
         'pond_id' => null,
         'color' => DuckColor::Blue->value,
         'mood' => DuckMood::Zen->value,
-        'happiness' => 2,
         'adopted_at' => '2026-02-02',
     ])
         ->assertRedirect()
@@ -90,16 +86,6 @@ it('releases (deletes) a duck', function () {
         ->assertSessionHas('success');
 
     expect(Duck::find($duck->id))->toBeNull();
-});
-
-it('increments quack_count via the quack action', function () {
-    $duck = Duck::factory()->create(['quack_count' => 4]);
-
-    $this->post("/ducks/{$duck->id}/quack")
-        ->assertRedirect()
-        ->assertSessionHas('success');
-
-    expect($duck->fresh()->quack_count)->toBe(5);
 });
 
 it('filters ducks by search, mood and colour', function () {

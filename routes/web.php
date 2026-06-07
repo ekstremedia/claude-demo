@@ -18,12 +18,10 @@ Route::get('/dashboard', fn () => Inertia::render('Dashboard'))->name('dashboard
 | Rubber Duck Pond 🦆
 |--------------------------------------------------------------------------
 |
-| The duck grid lives at /pond; ducks themselves are a resource. The quack
-| POST is declared before the resource and `show` is excluded, so the literal
-| `/ducks/{duck}/quack` route can never be shadowed by a wildcard.
+| The duck grid lives at /pond; ducks themselves are a resource (no `show`).
+| The animated pond lives at /ponds.
 |
 */
 Route::get('/pond', [DuckController::class, 'index'])->name('pond.index');
-Route::post('/ducks/{duck}/quack', [DuckController::class, 'quack'])->name('ducks.quack');
 Route::resource('ducks', DuckController::class)->only(['store', 'update', 'destroy']);
 Route::resource('ponds', PondController::class)->only(['index', 'store', 'update', 'destroy']);

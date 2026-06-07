@@ -30,7 +30,6 @@ class StoreDuckRequest extends FormRequest
             'pond_id' => ['nullable', 'integer', Rule::exists('ponds', 'id')],
             'color' => ['required', Rule::enum(DuckColor::class)],
             'mood' => ['required', Rule::enum(DuckMood::class)],
-            'happiness' => ['required', 'integer', 'between:1,5'],
             'adopted_at' => ['required', 'date'],
             'bio' => ['nullable', 'string', 'max:2000'],
         ];
