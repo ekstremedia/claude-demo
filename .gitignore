@@ -5,6 +5,8 @@
 .env.production
 .phpactor.json
 .phpunit.result.cache
+/.claude/scheduled_tasks.json
+/.claude/scheduled_tasks.lock
 /.codex
 /.cursor/
 /.idea

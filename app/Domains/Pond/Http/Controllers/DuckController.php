@@ -28,6 +28,9 @@ class DuckController extends Controller
     /** Ducks shown per page on the index. */
     private const int PER_PAGE = 12;
 
+    /** Most living ducks the pond will breed up to (mirrors FLOCK_CAP in pondLife.ts). */
+    private const int FLOCK_CAP = 16;
+
     /**
      * The pond index: a searchable, filterable, paginated grid of ducks plus
      * the headline stats and the option lists the create/edit form needs.
@@ -114,6 +117,39 @@ class DuckController extends Controller
         Duck::query()->whereIn('id', $this->validatedDuckIds($request))->whereNull('died_at')->update(['died_at' => now()]);
 
         return back();
+    }
+
+    /**
+     * Hatch a duckling when a well-fed duck breeds. Capped so the flock can't run
+     * away; the duckling inherits its parent's pond (or the single pond).
+     */
+    public function hatch(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'parent_id' => ['nullable', 'integer', 'exists:ducks,id'],
+        ]);
+
+        if (Duck::query()->whereNull('died_at')->count() >= self::FLOCK_CAP) {
+            return back();
+        }
+
+        $parent = isset($validated['parent_id']) ? Duck::find((int) $validated['parent_id']) : null;
+        $pondId = $parent !== null && $parent->pond_id !== null
+            ? $parent->pond_id
+            : Pond::query()->value('id');
+
+        Duck::create([
+            'pond_id' => $pondId,
+            'name' => fake()->firstName().' the Duckling',
+            'color' => fake()->randomElement(DuckColor::cases()),
+            'mood' => fake()->randomElement(DuckMood::cases()),
+            'adopted_at' => now(),
+            'bio' => null,
+            'last_fed_at' => now(),
+            'died_at' => null,
+        ]);
+
+        return back()->with('success', '🐣 A duckling hatched!');
     }
 
     /**

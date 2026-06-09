@@ -140,6 +140,24 @@ it('validates the duck ids on feed and die', function (string $route) {
     $this->post($route, ['ids' => [999999]])->assertSessionHasErrors('ids.0');
 })->with(['/ducks/feed', '/ducks/die']);
 
+it('hatches a duckling into the parent pond', function () {
+    $pond = Pond::factory()->create();
+    $parent = Duck::factory()->for($pond)->create();
+
+    $this->post('/ducks/hatch', ['parent_id' => $parent->id])->assertRedirect();
+
+    expect(Duck::count())->toBe(2)
+        ->and(Duck::query()->where('pond_id', $pond->id)->count())->toBe(2);
+});
+
+it('does not breed past the flock cap', function () {
+    Duck::factory()->count(16)->create(); // FLOCK_CAP living ducks
+
+    $this->post('/ducks/hatch')->assertRedirect();
+
+    expect(Duck::whereNull('died_at')->count())->toBe(16);
+});
+
 it('filters ducks by search, mood and colour', function () {
     Duck::factory()->create(['name' => 'Findme', 'mood' => DuckMood::Zen, 'color' => DuckColor::Blue]);
     Duck::factory()->create(['name' => 'Other', 'mood' => DuckMood::Grumpy, 'color' => DuckColor::Pink]);

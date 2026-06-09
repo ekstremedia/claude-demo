@@ -36,7 +36,7 @@ class Duck extends Model
     use HasFactory;
 
     /** Seconds a duck may go unfed before it starves — the single survival tunable. */
-    public const int LIFESPAN_SECONDS = 180;
+    public const int LIFESPAN_SECONDS = 60;
 
     /** @var list<string> */
     protected $fillable = ['pond_id', 'name', 'color', 'mood', 'adopted_at', 'bio', 'last_fed_at', 'died_at'];

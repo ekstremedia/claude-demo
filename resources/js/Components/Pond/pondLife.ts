@@ -4,7 +4,7 @@
 // multi-minute lifespan). Mirror of Duck::LIFESPAN_SECONDS on the PHP side.
 
 /** Time from a full belly to starvation, in milliseconds. */
-export const LIFESPAN_MS = 180_000;
+export const LIFESPAN_MS = 60_000;
 
 export type Hunger = 'content' | 'peckish' | 'hungry' | 'starving';
 
@@ -44,4 +44,38 @@ export function hungerLabel(life: number): Hunger {
 export function lifeColor(life: number): string {
     const hue = Math.round(130 * Math.min(1, Math.max(0, life)));
     return `hsl(${hue}, 70%, 45%)`;
+}
+
+/**
+ * The bread budget regenerates over time. Returns the new level, capped at `max`.
+ * Pure (no clock) so the engine can drive it from elapsed-time deltas and tests
+ * can drive it directly.
+ */
+export function refillBread(current: number, max: number, elapsedMs: number, refillMs: number): number {
+    if (refillMs <= 0 || elapsedMs <= 0) {
+        return Math.min(max, current);
+    }
+    return Math.min(max, current + elapsedMs / refillMs);
+}
+
+/** How long a duck must stay content before it lays an egg, in milliseconds. */
+export const BREED_CONTENT_MS = 18_000;
+
+/** Max living ducks before breeding stops (mirrors DuckController::FLOCK_CAP). */
+export const FLOCK_CAP = 16;
+
+/**
+ * A well-fed duck breeds: content (life above the threshold) for long enough,
+ * while the flock is below the cap. Pure so the engine and tests share the rule.
+ */
+export function shouldBreed(life: number, contentForMs: number, flockSize: number): boolean {
+    return life > 0.85 && contentForMs >= BREED_CONTENT_MS && flockSize < FLOCK_CAP;
+}
+
+/** Format a span of milliseconds as `M:SS` for the survival-time readout. */
+export function formatDuration(ms: number): string {
+    const total = Math.max(0, Math.floor(ms / 1000));
+    const minutes = Math.floor(total / 60);
+    const seconds = total % 60;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }

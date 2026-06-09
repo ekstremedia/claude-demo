@@ -1,5 +1,16 @@
 import { describe, it, expect } from 'vitest';
-import { hungerLabel, isDeadByLife, LIFESPAN_MS, lifeColor, lifeFor } from '@/Components/Pond/pondLife';
+import {
+    BREED_CONTENT_MS,
+    FLOCK_CAP,
+    formatDuration,
+    hungerLabel,
+    isDeadByLife,
+    LIFESPAN_MS,
+    lifeColor,
+    lifeFor,
+    refillBread,
+    shouldBreed,
+} from '@/Components/Pond/pondLife';
 
 const BORN = '2026-01-01T00:00:00.000Z';
 const bornMs = Date.parse(BORN);
@@ -64,6 +75,54 @@ describe('pondLife', () => {
         it('clamps out-of-range life', () => {
             expect(lifeColor(2)).toBe('hsl(130, 70%, 45%)');
             expect(lifeColor(-1)).toBe('hsl(0, 70%, 45%)');
+        });
+    });
+
+    describe('refillBread', () => {
+        it('adds one unit per refill interval', () => {
+            expect(refillBread(5, 12, 1000, 1000)).toBe(6);
+            expect(refillBread(5, 12, 500, 1000)).toBe(5.5);
+        });
+
+        it('never exceeds the max', () => {
+            expect(refillBread(11.5, 12, 5000, 1000)).toBe(12);
+            expect(refillBread(12, 12, 1000, 1000)).toBe(12);
+        });
+
+        it('is a no-op for non-positive elapsed or interval', () => {
+            expect(refillBread(5, 12, 0, 1000)).toBe(5);
+            expect(refillBread(5, 12, 1000, 0)).toBe(5);
+        });
+    });
+
+    describe('formatDuration', () => {
+        it('formats milliseconds as M:SS', () => {
+            expect(formatDuration(0)).toBe('0:00');
+            expect(formatDuration(9_000)).toBe('0:09');
+            expect(formatDuration(75_000)).toBe('1:15');
+            expect(formatDuration(600_000)).toBe('10:00');
+        });
+
+        it('clamps negative input to zero', () => {
+            expect(formatDuration(-500)).toBe('0:00');
+        });
+    });
+
+    describe('shouldBreed', () => {
+        it('breeds a content duck that has waited long enough, under the cap', () => {
+            expect(shouldBreed(0.9, BREED_CONTENT_MS, FLOCK_CAP - 1)).toBe(true);
+        });
+
+        it('will not breed when not content enough', () => {
+            expect(shouldBreed(0.8, BREED_CONTENT_MS, 4)).toBe(false);
+        });
+
+        it('will not breed before the content window elapses', () => {
+            expect(shouldBreed(0.95, BREED_CONTENT_MS - 1, 4)).toBe(false);
+        });
+
+        it('will not breed at or above the flock cap', () => {
+            expect(shouldBreed(0.95, BREED_CONTENT_MS, FLOCK_CAP)).toBe(false);
         });
     });
 });
