@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { useForm } from '@inertiajs/vue3';
-import { watch } from 'vue';
+import { computed, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import Modal from '@/Components/Modal.vue';
 import type { Duck, DuckOptions, DuckPond } from '@/types/pond';
+
+const { t } = useI18n();
 
 const props = defineProps<{
     show: boolean;
@@ -55,100 +58,104 @@ function submit(): void {
         form.post('/ducks', options);
     }
 }
+
+const title = computed(() =>
+    props.duck ? t('duckForm.editTitle', { name: props.duck.name }) : t('duckForm.adoptTitle'),
+);
 </script>
 
 <template>
-    <Modal :show="show" :title="duck ? `Edit ${duck.name}` : 'Adopt a duck'" @close="emit('close')">
+    <Modal :show="show" :title="title" @close="emit('close')">
         <form class="space-y-4" @submit.prevent="submit">
             <div>
-                <label class="block text-sm font-medium text-slate-700" for="duck-name">Name</label>
+                <label class="block text-sm font-medium text-slate-700 dark:text-slate-200" for="duck-name">{{ t('duckForm.name') }}</label>
                 <input
                     id="duck-name"
                     v-model="form.name"
                     type="text"
-                    class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
-                    placeholder="Sir Quacks-a-lot"
+                    class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500"
+                    :placeholder="t('duckForm.namePlaceholder')"
                 />
-                <p v-if="form.errors.name" class="mt-1 text-xs text-rose-500">{{ form.errors.name }}</p>
+                <p v-if="form.errors.name" class="mt-1 text-xs text-rose-500 dark:text-rose-400">{{ form.errors.name }}</p>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-slate-700" for="duck-color">Colour</label>
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-200" for="duck-color">{{ t('duckForm.colour') }}</label>
                     <select
                         id="duck-color"
                         v-model="form.color"
-                        class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+                        class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
                     >
-                        <option v-for="c in options.colors" :key="c.value" :value="c.value">{{ c.label }}</option>
+                        <option v-for="c in options.colors" :key="c.value" :value="c.value">{{ t('color.' + c.value) }}</option>
                     </select>
-                    <p v-if="form.errors.color" class="mt-1 text-xs text-rose-500">{{ form.errors.color }}</p>
+                    <p v-if="form.errors.color" class="mt-1 text-xs text-rose-500 dark:text-rose-400">{{ form.errors.color }}</p>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-slate-700" for="duck-mood">Mood</label>
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-200" for="duck-mood">{{ t('duckForm.mood') }}</label>
                     <select
                         id="duck-mood"
                         v-model="form.mood"
-                        class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+                        class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
                     >
                         <option v-for="m in options.moods" :key="m.value" :value="m.value">
-                            {{ m.emoji }} {{ m.label }}
+                            {{ m.emoji }} {{ t('mood.' + m.value) }}
                         </option>
                     </select>
-                    <p v-if="form.errors.mood" class="mt-1 text-xs text-rose-500">{{ form.errors.mood }}</p>
+                    <p v-if="form.errors.mood" class="mt-1 text-xs text-rose-500 dark:text-rose-400">{{ form.errors.mood }}</p>
                 </div>
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-slate-700" for="duck-pond">Pond</label>
+                <label class="block text-sm font-medium text-slate-700 dark:text-slate-200" for="duck-pond">{{ t('duckForm.pond') }}</label>
                 <select
                     id="duck-pond"
                     v-model="form.pond_id"
-                    class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+                    class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
                 >
-                    <option :value="null">🪹 Homeless</option>
+                    <option :value="null">🪹 {{ t('common.homeless') }}</option>
                     <option v-for="p in ponds" :key="p.id" :value="p.id">{{ p.name }}</option>
                 </select>
-                <p v-if="form.errors.pond_id" class="mt-1 text-xs text-rose-500">{{ form.errors.pond_id }}</p>
+                <p v-if="form.errors.pond_id" class="mt-1 text-xs text-rose-500 dark:text-rose-400">{{ form.errors.pond_id }}</p>
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-slate-700" for="duck-adopted">Adopted on</label>
+                <label class="block text-sm font-medium text-slate-700 dark:text-slate-200" for="duck-adopted">{{ t('duckForm.adoptedOn') }}</label>
                 <input
                     id="duck-adopted"
                     v-model="form.adopted_at"
                     type="date"
-                    class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+                    class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:[color-scheme:dark]"
                 />
-                <p v-if="form.errors.adopted_at" class="mt-1 text-xs text-rose-500">{{ form.errors.adopted_at }}</p>
+                <p v-if="form.errors.adopted_at" class="mt-1 text-xs text-rose-500 dark:text-rose-400">{{ form.errors.adopted_at }}</p>
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-slate-700" for="duck-bio">Bio</label>
+                <label class="block text-sm font-medium text-slate-700 dark:text-slate-200" for="duck-bio">{{ t('duckForm.bio') }}</label>
                 <textarea
                     id="duck-bio"
                     v-model="form.bio"
                     rows="2"
-                    class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
-                    placeholder="Loves breadcrumbs and long swims at sunset."
+                    class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500"
+                    :placeholder="t('duckForm.bioPlaceholder')"
                 />
-                <p v-if="form.errors.bio" class="mt-1 text-xs text-rose-500">{{ form.errors.bio }}</p>
+                <p v-if="form.errors.bio" class="mt-1 text-xs text-rose-500 dark:text-rose-400">{{ form.errors.bio }}</p>
             </div>
 
             <div class="flex justify-end gap-2 pt-2">
                 <button
                     type="button"
-                    class="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100"
+                    class="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700"
                     @click="emit('close')"
                 >
-                    Cancel
+                    {{ t('duckForm.cancel') }}
                 </button>
                 <button
                     type="submit"
                     class="rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-500 disabled:opacity-50"
                     :disabled="form.processing"
                 >
-                    {{ duck ? 'Save changes' : 'Adopt 🐣' }}
+                    {{ duck ? t('duckForm.save') : t('duckForm.adopt') }}
                 </button>
             </div>
         </form>

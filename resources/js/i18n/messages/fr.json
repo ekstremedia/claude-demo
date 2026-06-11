@@ -1,0 +1,110 @@
+{
+    "nav": {
+        "home": "Accueil",
+        "dashboard": "Tableau de bord",
+        "pond": "Étang 🦆"
+    },
+    "footer": {
+        "builtWith": "Conçu avec Laravel · Vue 3 · Inertia · Tailwind — exécuté dans Docker"
+    },
+    "selector": {
+        "language": "Changer de langue"
+    },
+    "theme": {
+        "toDark": "Passer en mode sombre",
+        "toLight": "Passer en mode clair"
+    },
+    "common": {
+        "close": "Fermer",
+        "homeless": "Sans abri"
+    },
+    "welcome": {
+        "tabTitle": "Bienvenue",
+        "eyebrow": "Démo Claude Code",
+        "heading": "Laravel + Vue + Inertia, dans un conteneur",
+        "intro": "Une application monopage servie par Laravel et rendue avec Vue via Inertia — sans couche API distincte. Toute la stack tourne dans Docker ; lancez-la avec {cmd}.",
+        "openDashboard": "Ouvrir le tableau de bord →",
+        "inertiaDocs": "Documentation Inertia",
+        "versions": "Laravel v{laravel} · PHP v{php}",
+        "stack": {
+            "laravel": "Framework PHP et routage",
+            "inertia": "Liant SPA, sans API distincte",
+            "vue": "Composants réactifs",
+            "tailwind": "Style utilitaire",
+            "vite": "Serveur de dev et HMR",
+            "docker": "make up / make down"
+        }
+    },
+    "dashboard": {
+        "tabTitle": "Tableau de bord",
+        "heading": "Tableau de bord",
+        "backHome": "← Retour à l’accueil",
+        "intro": "Vous êtes arrivé ici sans rechargement complet de la page — Inertia a remplacé le composant de page côté client.",
+        "reactivityCheck": "Vérification de la réactivité de Vue",
+        "clicked": "Cliqué {count} fois | Cliqué {count} fois",
+        "reset": "Réinitialiser"
+    },
+    "ducks": {
+        "tabTitle": "L’étang aux canards en plastique",
+        "eyebrow": "L’étang aux canards en plastique",
+        "heading": "Canards 🦆",
+        "flockCount": "{count} canard dans la volée. | {count} canards dans la volée.",
+        "viewPond": "Voir l’étang",
+        "adopt": "+ Adopter un canard",
+        "searchPlaceholder": "Rechercher des canards par nom…",
+        "emptyTitle": "Aucun canard ici pour l’instant",
+        "emptyHint": "Essayez une autre recherche, ou adoptez votre premier canard.",
+        "releaseConfirm": "Relâcher {name} dans la nature ?"
+    },
+    "pond": {
+        "tabTitle": "L’étang",
+        "eyebrow": "L’étang aux canards en plastique",
+        "heading": "L’étang 🌊",
+        "intro": "Cliquez sur l’eau pour lancer des miettes de pain — gardez la volée nourrie, sinon ils flotteront le ventre en l’air. Cliquez sur un canard pour vous en occuper.",
+        "manageDucks": "Gérer les canards"
+    },
+    "duckCard": {
+        "edit": "Modifier",
+        "release": "Relâcher"
+    },
+    "duckForm": {
+        "adoptTitle": "Adopter un canard",
+        "editTitle": "Modifier {name}",
+        "name": "Nom",
+        "namePlaceholder": "Sir Coin-Coin",
+        "colour": "Couleur",
+        "mood": "Humeur",
+        "pond": "Étang",
+        "adoptedOn": "Adopté le",
+        "bio": "Bio",
+        "bioPlaceholder": "Adore les miettes de pain et les longues baignades au coucher du soleil.",
+        "cancel": "Annuler",
+        "save": "Enregistrer les modifications",
+        "adopt": "Adopter 🐣"
+    },
+    "hud": {
+        "pondQuietTitle": "L’étang est calme",
+        "pondQuietHint": "Adoptez un canard pour lui donner vie.",
+        "gameOver": "Partie terminée",
+        "gameOverBody": "Toute la volée est morte de faim. Ils ont vécu, ils ont flotté, on a oublié de les nourrir. L’étang est silencieux à présent — juste de douces ondulations et des regrets.",
+        "survived": "Survécu {time}",
+        "crumbsFed": "{count} miette donnée | {count} miettes données",
+        "newBest": "🏆 Nouveau record !",
+        "bestStreak": "Meilleure série {time}",
+        "restock": "Repeupler l’étang"
+    },
+    "mood": {
+        "happy": "Joyeux",
+        "sleepy": "Endormi",
+        "excited": "Excité",
+        "zen": "Zen",
+        "grumpy": "Grognon"
+    },
+    "color": {
+        "yellow": "Jaune classique",
+        "blue": "Bleu océan",
+        "pink": "Rose chewing-gum",
+        "green": "Vert étang",
+        "white": "Blanc caoutchouc"
+    }
+}

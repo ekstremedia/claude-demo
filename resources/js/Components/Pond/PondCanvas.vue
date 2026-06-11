@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import type { Duck } from '@/types/pond';
 import { usePondScene, type PondStats } from '@/Components/Pond/usePondScene';
 import { formatDuration } from '@/Components/Pond/pondLife';
+
+const { t } = useI18n();
 
 const props = defineProps<{ ducks: Duck[] }>();
 const emit = defineEmits<{
@@ -163,8 +166,8 @@ function onClick(event: MouseEvent): void {
         <div v-if="!ducks.length" class="pointer-events-none absolute inset-0 grid place-items-center text-center">
             <div>
                 <p class="text-5xl">🦆</p>
-                <p class="mt-3 font-medium text-white drop-shadow">The pond is quiet</p>
-                <p class="mt-1 text-sm text-white/80 drop-shadow">Adopt a duck to bring it to life.</p>
+                <p class="mt-3 font-medium text-white drop-shadow">{{ t('hud.pondQuietTitle') }}</p>
+                <p class="mt-1 text-sm text-white/80 drop-shadow">{{ t('hud.pondQuietHint') }}</p>
             </div>
         </div>
 
@@ -175,25 +178,24 @@ function onClick(event: MouseEvent): void {
         >
             <div class="px-6 text-center">
                 <p class="text-6xl">💀🦆</p>
-                <h2 class="mt-4 text-2xl font-bold text-white">Game over</h2>
+                <h2 class="mt-4 text-2xl font-bold text-white">{{ t('hud.gameOver') }}</h2>
                 <p class="mt-2 max-w-sm text-sm text-slate-200">
-                    The whole flock has starved. They lived, they floated, they forgot to be fed.
-                    The pond is silent now — just gentle ripples and regret.
+                    {{ t('hud.gameOverBody') }}
                 </p>
                 <p class="mt-4 text-sm text-slate-300">
-                    <span class="font-semibold text-white">Survived {{ formatDuration(survivalMs) }}</span>
-                    · {{ stats.crumbsEaten }} crumbs fed
+                    <span class="font-semibold text-white">{{ t('hud.survived', { time: formatDuration(survivalMs) }) }}</span>
+                    · {{ t('hud.crumbsFed', stats.crumbsEaten) }}
                 </p>
                 <p class="mt-1 text-xs text-slate-400">
-                    <span v-if="newBest" class="font-semibold text-amber-300">🏆 New best!</span>
-                    <span v-else>Best streak {{ formatDuration(bestMs) }}</span>
+                    <span v-if="newBest" class="font-semibold text-amber-300">{{ t('hud.newBest') }}</span>
+                    <span v-else>{{ t('hud.bestStreak', { time: formatDuration(bestMs) }) }}</span>
                 </p>
                 <button
                     type="button"
                     class="mt-6 rounded-lg bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-500"
                     @click="emit('restock')"
                 >
-                    Restock the pond
+                    {{ t('hud.restock') }}
                 </button>
             </div>
         </div>

@@ -1,0 +1,110 @@
+{
+    "nav": {
+        "home": "ہوم",
+        "dashboard": "ڈیش بورڈ",
+        "pond": "تالاب 🦆"
+    },
+    "footer": {
+        "builtWith": "Laravel · Vue 3 · Inertia · Tailwind سے بنایا گیا — Docker میں چل رہا ہے"
+    },
+    "selector": {
+        "language": "زبان تبدیل کریں"
+    },
+    "theme": {
+        "toDark": "ڈارک موڈ پر جائیں",
+        "toLight": "لائٹ موڈ پر جائیں"
+    },
+    "common": {
+        "close": "بند کریں",
+        "homeless": "بے گھر"
+    },
+    "welcome": {
+        "tabTitle": "خوش آمدید",
+        "eyebrow": "Claude Code ڈیمو",
+        "heading": "ایک کنٹینر میں Laravel + Vue + Inertia",
+        "intro": "ایک سنگل پیج ایپ جسے Laravel فراہم کرتا ہے اور Inertia کے ذریعے Vue سے پیش کیا جاتا ہے — کوئی الگ API پرت نہیں۔ پورا اسٹیک Docker میں چلتا ہے؛ اسے {cmd} سے شروع کریں۔",
+        "openDashboard": "ڈیش بورڈ کھولیں ←",
+        "inertiaDocs": "Inertia دستاویزات",
+        "versions": "Laravel v{laravel} · PHP v{php}",
+        "stack": {
+            "laravel": "PHP فریم ورک اور روٹنگ",
+            "inertia": "SPA کا جوڑ، کوئی الگ API نہیں",
+            "vue": "ری ایکٹو اجزاء",
+            "tailwind": "یوٹیلیٹی پر مبنی اسٹائلنگ",
+            "vite": "ڈیولپمنٹ سرور اور HMR",
+            "docker": "make up / make down"
+        }
+    },
+    "dashboard": {
+        "tabTitle": "ڈیش بورڈ",
+        "heading": "ڈیش بورڈ",
+        "backHome": "← ہوم پر واپس",
+        "intro": "آپ یہاں مکمل صفحہ ری لوڈ کیے بغیر آئے — Inertia نے پیج کمپوننٹ کو کلائنٹ کی طرف تبدیل کر دیا۔",
+        "reactivityCheck": "Vue ری ایکٹیویٹی کی جانچ",
+        "clicked": "{count} بار کلک کیا | {count} بار کلک کیا",
+        "reset": "ری سیٹ کریں"
+    },
+    "ducks": {
+        "tabTitle": "ربڑ کی بطخ کا تالاب",
+        "eyebrow": "ربڑ کی بطخ کا تالاب",
+        "heading": "بطخیں 🦆",
+        "flockCount": "غول میں {count} بطخ۔ | غول میں {count} بطخیں۔",
+        "viewPond": "تالاب دیکھیں",
+        "adopt": "+ ایک بطخ گود لیں",
+        "searchPlaceholder": "نام سے بطخیں تلاش کریں…",
+        "emptyTitle": "ابھی یہاں کوئی بطخ نہیں",
+        "emptyHint": "کوئی اور تلاش آزمائیں، یا اپنی پہلی بطخ گود لیں۔",
+        "releaseConfirm": "کیا {name} کو دوبارہ آزاد چھوڑ دیں؟"
+    },
+    "pond": {
+        "tabTitle": "تالاب",
+        "eyebrow": "ربڑ کی بطخ کا تالاب",
+        "heading": "تالاب 🌊",
+        "intro": "پانی پر کلک کر کے روٹی کے ٹکڑے ڈالیں — غول کو سیر رکھیں، ورنہ وہ پیٹ کے بل تیرنے لگیں گی۔ کسی بطخ کی دیکھ بھال کے لیے اس پر کلک کریں۔",
+        "manageDucks": "بطخوں کا انتظام کریں"
+    },
+    "duckCard": {
+        "edit": "ترمیم کریں",
+        "release": "آزاد کریں"
+    },
+    "duckForm": {
+        "adoptTitle": "ایک بطخ گود لیں",
+        "editTitle": "{name} میں ترمیم کریں",
+        "name": "نام",
+        "namePlaceholder": "سر کوئیکس-اے-لاٹ",
+        "colour": "رنگ",
+        "mood": "موڈ",
+        "pond": "تالاب",
+        "adoptedOn": "گود لینے کی تاریخ",
+        "bio": "تعارف",
+        "bioPlaceholder": "روٹی کے ٹکڑوں اور غروبِ آفتاب کے وقت لمبی تیراکی کا شوقین۔",
+        "cancel": "منسوخ کریں",
+        "save": "تبدیلیاں محفوظ کریں",
+        "adopt": "گود لیں 🐣"
+    },
+    "hud": {
+        "pondQuietTitle": "تالاب خاموش ہے",
+        "pondQuietHint": "اسے زندہ کرنے کے لیے ایک بطخ گود لیں۔",
+        "gameOver": "کھیل ختم",
+        "gameOverBody": "پورا غول بھوک سے مر گیا۔ وہ جیے، وہ تیرے، انہیں کھلانا بھول گئے۔ تالاب اب خاموش ہے — صرف ہلکی لہریں اور افسوس۔",
+        "survived": "{time} زندہ رہے",
+        "crumbsFed": "{count} ٹکڑا کھلایا | {count} ٹکڑے کھلائے",
+        "newBest": "🏆 نیا ریکارڈ!",
+        "bestStreak": "بہترین سلسلہ {time}",
+        "restock": "تالاب دوبارہ بھریں"
+    },
+    "mood": {
+        "happy": "خوش",
+        "sleepy": "نیند بھری",
+        "excited": "پُرجوش",
+        "zen": "پُرسکون",
+        "grumpy": "چڑچڑی"
+    },
+    "color": {
+        "yellow": "کلاسک پیلا",
+        "blue": "سمندری نیلا",
+        "pink": "ببل گم گلابی",
+        "green": "تالابی سبز",
+        "white": "ربڑ سفید"
+    }
+}

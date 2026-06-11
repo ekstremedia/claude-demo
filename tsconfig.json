@@ -9,6 +9,7 @@
         "forceConsistentCasingInFileNames": true,
         "skipLibCheck": true,
         "isolatedModules": true,
+        "resolveJsonModule": true,
         "noEmit": true,
         "allowImportingTsExtensions": true,
         "lib": ["ESNext", "DOM", "DOM.Iterable"],
