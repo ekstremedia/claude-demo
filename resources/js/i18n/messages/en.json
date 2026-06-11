@@ -1,0 +1,110 @@
+{
+    "nav": {
+        "home": "Home",
+        "dashboard": "Dashboard",
+        "pond": "Pond 🦆"
+    },
+    "footer": {
+        "builtWith": "Built with Laravel · Vue 3 · Inertia · Tailwind — running in Docker"
+    },
+    "selector": {
+        "language": "Change language"
+    },
+    "theme": {
+        "toDark": "Switch to dark mode",
+        "toLight": "Switch to light mode"
+    },
+    "common": {
+        "close": "Close",
+        "homeless": "Homeless"
+    },
+    "welcome": {
+        "tabTitle": "Welcome",
+        "eyebrow": "Claude Code Demo",
+        "heading": "Laravel + Vue + Inertia, in a container",
+        "intro": "A single-page app served by Laravel and rendered with Vue through Inertia — no separate API layer. The whole stack runs in Docker; start it with {cmd}.",
+        "openDashboard": "Open the dashboard →",
+        "inertiaDocs": "Inertia docs",
+        "versions": "Laravel v{laravel} · PHP v{php}",
+        "stack": {
+            "laravel": "PHP framework & routing",
+            "inertia": "SPA glue, no separate API",
+            "vue": "Reactive components",
+            "tailwind": "Utility-first styling",
+            "vite": "Dev server & HMR",
+            "docker": "make up / make down"
+        }
+    },
+    "dashboard": {
+        "tabTitle": "Dashboard",
+        "heading": "Dashboard",
+        "backHome": "← Back home",
+        "intro": "You navigated here without a full page reload — Inertia swapped the page component client-side.",
+        "reactivityCheck": "Vue reactivity check",
+        "clicked": "Clicked {count} time | Clicked {count} times",
+        "reset": "Reset"
+    },
+    "ducks": {
+        "tabTitle": "Rubber Duck Pond",
+        "eyebrow": "Rubber Duck Pond",
+        "heading": "Ducks 🦆",
+        "flockCount": "{count} duck in the flock. | {count} ducks in the flock.",
+        "viewPond": "View the pond",
+        "adopt": "+ Adopt a duck",
+        "searchPlaceholder": "Search ducks by name…",
+        "emptyTitle": "No ducks here yet",
+        "emptyHint": "Try a different search, or adopt your first duck.",
+        "releaseConfirm": "Release {name} back into the wild?"
+    },
+    "pond": {
+        "tabTitle": "The Pond",
+        "eyebrow": "Rubber Duck Pond",
+        "heading": "The Pond 🌊",
+        "intro": "Click the water to toss breadcrumbs — keep the flock fed, or they'll float belly-up. Click a duck to tend it.",
+        "manageDucks": "Manage ducks"
+    },
+    "duckCard": {
+        "edit": "Edit",
+        "release": "Release"
+    },
+    "duckForm": {
+        "adoptTitle": "Adopt a duck",
+        "editTitle": "Edit {name}",
+        "name": "Name",
+        "namePlaceholder": "Sir Quacks-a-lot",
+        "colour": "Colour",
+        "mood": "Mood",
+        "pond": "Pond",
+        "adoptedOn": "Adopted on",
+        "bio": "Bio",
+        "bioPlaceholder": "Loves breadcrumbs and long swims at sunset.",
+        "cancel": "Cancel",
+        "save": "Save changes",
+        "adopt": "Adopt 🐣"
+    },
+    "hud": {
+        "pondQuietTitle": "The pond is quiet",
+        "pondQuietHint": "Adopt a duck to bring it to life.",
+        "gameOver": "Game over",
+        "gameOverBody": "The whole flock has starved. They lived, they floated, they forgot to be fed. The pond is silent now — just gentle ripples and regret.",
+        "survived": "Survived {time}",
+        "crumbsFed": "{count} crumb fed | {count} crumbs fed",
+        "newBest": "🏆 New best!",
+        "bestStreak": "Best streak {time}",
+        "restock": "Restock the pond"
+    },
+    "mood": {
+        "happy": "Happy",
+        "sleepy": "Sleepy",
+        "excited": "Excited",
+        "zen": "Zen",
+        "grumpy": "Grumpy"
+    },
+    "color": {
+        "yellow": "Classic Yellow",
+        "blue": "Ocean Blue",
+        "pink": "Bubblegum Pink",
+        "green": "Pond Green",
+        "white": "Rubber White"
+    }
+}

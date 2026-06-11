@@ -1,0 +1,110 @@
+{
+    "nav": {
+        "home": "Hjem",
+        "dashboard": "Oversikt",
+        "pond": "Dam 🦆"
+    },
+    "footer": {
+        "builtWith": "Bygget med Laravel · Vue 3 · Inertia · Tailwind — kjører i Docker"
+    },
+    "selector": {
+        "language": "Bytt språk"
+    },
+    "theme": {
+        "toDark": "Bytt til mørk modus",
+        "toLight": "Bytt til lys modus"
+    },
+    "common": {
+        "close": "Lukk",
+        "homeless": "Hjemløs"
+    },
+    "welcome": {
+        "tabTitle": "Velkommen",
+        "eyebrow": "Claude Code-demo",
+        "heading": "Laravel + Vue + Inertia, i en container",
+        "intro": "En enkeltsideapp servert av Laravel og gjengitt med Vue gjennom Inertia — uten et eget API-lag. Hele stacken kjører i Docker; start den med {cmd}.",
+        "openDashboard": "Åpne oversikten →",
+        "inertiaDocs": "Inertia-dokumentasjon",
+        "versions": "Laravel v{laravel} · PHP v{php}",
+        "stack": {
+            "laravel": "PHP-rammeverk og ruting",
+            "inertia": "SPA-lim, uten eget API",
+            "vue": "Reaktive komponenter",
+            "tailwind": "Verktøybasert styling",
+            "vite": "Utviklingsserver og HMR",
+            "docker": "make up / make down"
+        }
+    },
+    "dashboard": {
+        "tabTitle": "Oversikt",
+        "heading": "Oversikt",
+        "backHome": "← Tilbake til hjem",
+        "intro": "Du navigerte hit uten full sideinnlasting — Inertia byttet sidekomponenten på klientsiden.",
+        "reactivityCheck": "Sjekk av Vue-reaktivitet",
+        "clicked": "Klikket {count} gang | Klikket {count} ganger",
+        "reset": "Nullstill"
+    },
+    "ducks": {
+        "tabTitle": "Badeand-dammen",
+        "eyebrow": "Badeand-dammen",
+        "heading": "Ender 🦆",
+        "flockCount": "{count} and i flokken. | {count} ender i flokken.",
+        "viewPond": "Se dammen",
+        "adopt": "+ Adopter en and",
+        "searchPlaceholder": "Søk etter ender på navn…",
+        "emptyTitle": "Ingen ender her ennå",
+        "emptyHint": "Prøv et annet søk, eller adopter din første and.",
+        "releaseConfirm": "Slippe {name} fri igjen?"
+    },
+    "pond": {
+        "tabTitle": "Dammen",
+        "eyebrow": "Badeand-dammen",
+        "heading": "Dammen 🌊",
+        "intro": "Klikk på vannet for å kaste brødsmuler — hold flokken mett, ellers flyter de opp med buken i været. Klikk på en and for å stelle den.",
+        "manageDucks": "Behandle ender"
+    },
+    "duckCard": {
+        "edit": "Rediger",
+        "release": "Slipp fri"
+    },
+    "duckForm": {
+        "adoptTitle": "Adopter en and",
+        "editTitle": "Rediger {name}",
+        "name": "Navn",
+        "namePlaceholder": "Sir Kvakk-mye",
+        "colour": "Farge",
+        "mood": "Humør",
+        "pond": "Dam",
+        "adoptedOn": "Adoptert den",
+        "bio": "Bio",
+        "bioPlaceholder": "Elsker brødsmuler og lange svømmeturer i solnedgang.",
+        "cancel": "Avbryt",
+        "save": "Lagre endringer",
+        "adopt": "Adopter 🐣"
+    },
+    "hud": {
+        "pondQuietTitle": "Dammen er stille",
+        "pondQuietHint": "Adopter en and for å gi den liv.",
+        "gameOver": "Spillet er slutt",
+        "gameOverBody": "Hele flokken har sultet i hjel. De levde, de fløt, de glemte å bli matet. Dammen er stille nå — bare svake krusninger og anger.",
+        "survived": "Overlevde {time}",
+        "crumbsFed": "{count} smule matet | {count} smuler matet",
+        "newBest": "🏆 Ny rekord!",
+        "bestStreak": "Beste rekke {time}",
+        "restock": "Fyll opp dammen igjen"
+    },
+    "mood": {
+        "happy": "Glad",
+        "sleepy": "Søvnig",
+        "excited": "Ivrig",
+        "zen": "Zen",
+        "grumpy": "Grinete"
+    },
+    "color": {
+        "yellow": "Klassisk gul",
+        "blue": "Havblå",
+        "pink": "Tyggegummirosa",
+        "green": "Damgrønn",
+        "white": "Gummihvit"
+    }
+}

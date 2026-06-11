@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PondCanvas from '@/Components/Pond/PondCanvas.vue';
 import DuckFormModal from '@/Components/Pond/DuckFormModal.vue';
 import type { Duck, DuckOptions, DuckPond } from '@/types/pond';
+
+const { t } = useI18n();
 
 defineProps<{
     ducks: Duck[];
@@ -44,23 +47,23 @@ function hatch(parentId: number): void {
 </script>
 
 <template>
-    <Head title="The Pond" />
+    <Head :title="t('pond.tabTitle')" />
 
     <AppLayout>
         <!-- Header -->
         <div class="flex flex-wrap items-end justify-between gap-4">
             <div>
-                <p class="text-sm font-semibold uppercase tracking-widest text-teal-600">Rubber Duck Pond</p>
-                <h1 class="mt-1 text-3xl font-bold tracking-tight text-slate-900">The Pond 🌊</h1>
-                <p class="mt-1 text-slate-500">
-                    Click the water to toss breadcrumbs — keep the flock fed, or they'll float belly-up. Click a duck to tend it.
+                <p class="text-sm font-semibold uppercase tracking-widest text-teal-600 dark:text-teal-400">{{ t('pond.eyebrow') }}</p>
+                <h1 class="mt-1 text-3xl font-bold tracking-tight text-slate-900 dark:text-white">{{ t('pond.heading') }}</h1>
+                <p class="mt-1 text-slate-500 dark:text-slate-400">
+                    {{ t('pond.intro') }}
                 </p>
             </div>
             <Link
                 href="/pond"
-                class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+                class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
             >
-                Manage ducks
+                {{ t('pond.manageDucks') }}
             </Link>
         </div>
 

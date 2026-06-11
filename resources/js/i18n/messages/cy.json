@@ -1,0 +1,110 @@
+{
+    "nav": {
+        "home": "Hafan",
+        "dashboard": "Dangosfwrdd",
+        "pond": "Pwll 🦆"
+    },
+    "footer": {
+        "builtWith": "Wedi’i adeiladu â Laravel · Vue 3 · Inertia · Tailwind — yn rhedeg yn Docker"
+    },
+    "selector": {
+        "language": "Newid iaith"
+    },
+    "theme": {
+        "toDark": "Newid i’r modd tywyll",
+        "toLight": "Newid i’r modd golau"
+    },
+    "common": {
+        "close": "Cau",
+        "homeless": "Digartref"
+    },
+    "welcome": {
+        "tabTitle": "Croeso",
+        "eyebrow": "Demo Claude Code",
+        "heading": "Laravel + Vue + Inertia, mewn cynhwysydd",
+        "intro": "Ap un dudalen wedi’i weini gan Laravel a’i rendro â Vue trwy Inertia — heb haen API ar wahân. Mae’r holl stac yn rhedeg yn Docker; cychwynnwch ef â {cmd}.",
+        "openDashboard": "Agor y dangosfwrdd →",
+        "inertiaDocs": "Dogfennaeth Inertia",
+        "versions": "Laravel v{laravel} · PHP v{php}",
+        "stack": {
+            "laravel": "Fframwaith PHP a llwybro",
+            "inertia": "Glud SPA, heb API ar wahân",
+            "vue": "Cydrannau adweithiol",
+            "tailwind": "Steilio yn seiliedig ar ddefnyddioldeb",
+            "vite": "Gweinydd datblygu a HMR",
+            "docker": "make up / make down"
+        }
+    },
+    "dashboard": {
+        "tabTitle": "Dangosfwrdd",
+        "heading": "Dangosfwrdd",
+        "backHome": "← Yn ôl i’r hafan",
+        "intro": "Fe lywiwyd chi yma heb ail-lwytho’r dudalen yn llawn — newidiodd Inertia gydran y dudalen ar ochr y cleient.",
+        "reactivityCheck": "Gwiriad adweitheddedd Vue",
+        "clicked": "Clic {count} gwaith | Clic {count} gwaith",
+        "reset": "Ailosod"
+    },
+    "ducks": {
+        "tabTitle": "Pwll yr Hwyaid Rwber",
+        "eyebrow": "Pwll yr Hwyaid Rwber",
+        "heading": "Hwyaid 🦆",
+        "flockCount": "{count} hwyaden yn yr haid. | {count} hwyaden yn yr haid.",
+        "viewPond": "Gweld y pwll",
+        "adopt": "+ Mabwysiadu hwyaden",
+        "searchPlaceholder": "Chwilio am hwyaid yn ôl enw…",
+        "emptyTitle": "Dim hwyaid yma eto",
+        "emptyHint": "Rhowch gynnig ar chwiliad gwahanol, neu mabwysiadwch eich hwyaden gyntaf.",
+        "releaseConfirm": "Rhyddhau {name} yn ôl i’r gwyllt?"
+    },
+    "pond": {
+        "tabTitle": "Y Pwll",
+        "eyebrow": "Pwll yr Hwyaid Rwber",
+        "heading": "Y Pwll 🌊",
+        "intro": "Cliciwch ar y dŵr i daflu briwsion bara — cadwch yr haid wedi’i bwydo, neu fe fyddan nhw’n arnofio â’u boliau i fyny. Cliciwch ar hwyaden i ofalu amdani.",
+        "manageDucks": "Rheoli hwyaid"
+    },
+    "duckCard": {
+        "edit": "Golygu",
+        "release": "Rhyddhau"
+    },
+    "duckForm": {
+        "adoptTitle": "Mabwysiadu hwyaden",
+        "editTitle": "Golygu {name}",
+        "name": "Enw",
+        "namePlaceholder": "Syr Cwac-lawer",
+        "colour": "Lliw",
+        "mood": "Hwyl",
+        "pond": "Pwll",
+        "adoptedOn": "Mabwysiadwyd ar",
+        "bio": "Bywgraffiad",
+        "bioPlaceholder": "Wrth ei fodd â briwsion bara a nofio’n hir ar fachlud haul.",
+        "cancel": "Canslo",
+        "save": "Cadw newidiadau",
+        "adopt": "Mabwysiadu 🐣"
+    },
+    "hud": {
+        "pondQuietTitle": "Mae’r pwll yn dawel",
+        "pondQuietHint": "Mabwysiadwch hwyaden i’w fywiogi.",
+        "gameOver": "Gêm drosodd",
+        "gameOverBody": "Mae’r holl haid wedi llwgu. Fe fuon nhw’n byw, fe arnofion nhw, fe anghofiwyd eu bwydo. Mae’r pwll yn dawel nawr — dim ond crychdonnau ysgafn ac edifeirwch.",
+        "survived": "Goroesodd {time}",
+        "crumbsFed": "{count} briwsionyn wedi’i fwydo | {count} briwsionyn wedi’u bwydo",
+        "newBest": "🏆 Record newydd!",
+        "bestStreak": "Rhediad gorau {time}",
+        "restock": "Ail-lenwi’r pwll"
+    },
+    "mood": {
+        "happy": "Hapus",
+        "sleepy": "Cysglyd",
+        "excited": "Cyffrous",
+        "zen": "Zen",
+        "grumpy": "Sarrug"
+    },
+    "color": {
+        "yellow": "Melyn clasurol",
+        "blue": "Glas y môr",
+        "pink": "Pinc gwm cnoi",
+        "green": "Gwyrdd y pwll",
+        "white": "Gwyn rwber"
+    }
+}
