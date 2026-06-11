@@ -15,7 +15,7 @@ it('renders the pond page with canvas ducks and form options', function () {
         ->assertInertia(fn (Assert $page) => $page
             ->component('Pond/Ponds')
             ->has('ducks', 2)
-            ->has('ducks.0.last_fed_adst')
+            ->has('ducks.0.last_fed_at')
             ->has('ducks.0.created_at')
             ->has('ponds', 1)
             ->where('ponds.0.name', $pond->name)
